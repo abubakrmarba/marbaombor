@@ -103,7 +103,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ padding: 20, maxWidth: 1000, margin: "0 auto" }}>
+      <div style={{ padding: 20, maxWidth: 1400, margin: "0 auto" }}>
         {section === "ombor" && <OmborSection sellerName={sellerName} />}
         {section === "uyombor" && <UyOmborSection sellerName={sellerName} />}
         {section === "reviziya" && <ReviziyaSection sellerName={sellerName} />}
