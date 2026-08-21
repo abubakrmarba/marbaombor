@@ -8,6 +8,9 @@ import { supabase } from "./supabaseClient";
 const SELLER_NAMES = ["Azizxon", "Doniyorjon", "Jahongir", "Javohirbek", "Hamidjon", "Jamshidbek", "Xislatbek", "Mubashirxon", "Jahongiroldi"];
 const ORANGE = "#E9642B";
 const ORANGE_DARK = "#C24F1F";
+const PURPLE_DARK = "#3D2A54";
+const PURPLE = "#4D3966";
+const PURPLE_BORDER = "#5D4976";
 
 function fmt(n) { return "$" + (Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
 function formatDate(iso) {
@@ -57,20 +60,20 @@ export default function App() {
 
   if (!session) {
     return (
-      <div style={{ fontFamily: "system-ui, sans-serif", minHeight: 500, display: "flex", alignItems: "center", justifyContent: "center", background: "#241207", padding: 24 }}>
+      <div style={{ fontFamily: "system-ui, sans-serif", minHeight: 500, display: "flex", alignItems: "center", justifyContent: "center", background: PURPLE_DARK, padding: 24 }}>
         <style>{css}</style>
         <div style={{ width: "100%", maxWidth: 380 }}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 28, color: "#fff" }}><LogoMark size={26} /></div>
-          <div className="ob-card" style={{ background: "#1c1c1a", border: "1px solid #2c2c29" }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}><LogoMark size={26} /></div>
+          <div className="ob-card" style={{ background: PURPLE, border: `1px solid ${PURPLE_BORDER}` }}>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Xodimni tanlang</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18 }}>
               {SELLER_NAMES.map((n) => (
                 <button key={n} onClick={() => { setLoginName(n); setLoginError(""); }} className="ob-btn"
-                  style={{ background: loginName === n ? ORANGE : "#2a2a27", color: "#fff", fontSize: 13, padding: "10px 8px" }}>{n}</button>
+                  style={{ background: loginName === n ? ORANGE : PURPLE_DARK, color: "#fff", fontSize: 13, padding: "10px 8px" }}>{n}</button>
               ))}
             </div>
-            <div style={{ color: "#c9c7bd", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Parol</div>
-            <input type="password" className="ob-input" style={{ background: "#2a2a27", border: "1.5px solid #3a3a36", color: "#fff", marginBottom: 12 }}
+            <div style={{ color: "#d9d0e6", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Parol</div>
+            <input type="password" className="ob-input" style={{ background: PURPLE_DARK, border: `1.5px solid ${PURPLE_BORDER}`, color: "#fff", marginBottom: 12 }}
               value={loginPass} onChange={(e) => setLoginPass(e.target.value)} onKeyDown={(e) => e.key === "Enter" && doLogin()} placeholder="Parolni kiriting" />
             {loginError && <div style={{ color: "#f0837f", fontSize: 13, marginBottom: 10 }}>{loginError}</div>}
             <button className="ob-btn ob-btn-primary" style={{ width: "100%" }} disabled={busy} onClick={doLogin}>{busy ? "..." : "Kirish"}</button>
@@ -81,22 +84,23 @@ export default function App() {
   }
 
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", minHeight: 500, background: "#FFF6E6", color: "#161615" }}>
+    <div style={{ fontFamily: "system-ui, sans-serif", minHeight: 500, background: PURPLE, color: "#161615" }}>
       <style>{css}</style>
-      <div style={{ background: "#161615", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-        <div style={{ color: "#fff" }}><LogoMark size={16} sub={false} /></div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ color: "#c9c7bd", fontSize: 13.5 }}>Xodim: <b style={{ color: "#fff" }}>{sellerName}</b></span>
-          <button className="ob-btn ob-btn-ghost" style={{ color: "#fff", borderColor: "#3a3a36", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px" }} onClick={doLogout}><LogOut size={15} /> Chiqish</button>
-        </div>
-      </div>
 
-      <div style={{ background: "#161615", display: "flex", overflowX: "auto", borderBottom: "1px solid #2c2c29" }}>
-        <NavTab icon={<Package size={16} />} label="Ombor" active={section === "ombor"} onClick={() => setSection("ombor")} />
-        <NavTab icon={<Warehouse size={16} />} label="Uy ombor" active={section === "uyombor"} onClick={() => setSection("uyombor")} />
-        <NavTab icon={<ClipboardCheck size={16} />} label="Reviziya" active={section === "reviziya"} onClick={() => setSection("reviziya")} />
-        <NavTab icon={<Undo2 size={16} />} label="Vazvrat" active={section === "vazvrat"} onClick={() => setSection("vazvrat")} />
-        <NavTab icon={<BarChart3 size={16} />} label="Statistika" active={section === "statistika"} onClick={() => setSection("statistika")} />
+      <div style={{ background: PURPLE_DARK, padding: "10px 20px", display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap", borderBottom: `1px solid ${PURPLE_BORDER}` }}>
+        <img src="/logo.png" alt="MARBA" style={{ height: 42, width: 42, borderRadius: "50%", flexShrink: 0 }} />
+        <div style={{ width: 1, height: 28, background: PURPLE_BORDER, flexShrink: 0 }} />
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
+          <NavTab icon={<Package size={16} />} label="Ombor" active={section === "ombor"} onClick={() => setSection("ombor")} />
+          <NavTab icon={<Warehouse size={16} />} label="Uy ombor" active={section === "uyombor"} onClick={() => setSection("uyombor")} />
+          <NavTab icon={<ClipboardCheck size={16} />} label="Reviziya" active={section === "reviziya"} onClick={() => setSection("reviziya")} />
+          <NavTab icon={<Undo2 size={16} />} label="Vazvrat" active={section === "vazvrat"} onClick={() => setSection("vazvrat")} />
+          <NavTab icon={<BarChart3 size={16} />} label="Statistika" active={section === "statistika"} onClick={() => setSection("statistika")} />
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
+          <span style={{ color: "#d9d0e6", fontSize: 13.5 }}>Xodim: <b style={{ color: "#fff" }}>{sellerName}</b></span>
+          <button className="ob-btn ob-btn-ghost" style={{ color: "#fff", borderColor: PURPLE_BORDER, display: "flex", alignItems: "center", gap: 6, padding: "8px 12px" }} onClick={doLogout}><LogOut size={15} /> Chiqish</button>
+        </div>
       </div>
 
       <div style={{ padding: 20, maxWidth: 1000, margin: "0 auto" }}>
@@ -655,7 +659,7 @@ const css = `
   .ob-btn-primary { background:${ORANGE}; color:#fff; }
   .ob-btn-primary:hover { background:${ORANGE_DARK}; }
   .ob-btn-primary:disabled { background:#d7a48c; }
-  .ob-btn-dark { background:#161615; color:#fff; }
+  .ob-btn-dark { background:${PURPLE_DARK}; color:#fff; }
   .ob-btn-ghost { background:transparent; border:1.5px solid #d8d6cc; }
   .ob-btn-ghost:hover { background:#eae8df; }
   .ob-btn-danger { background:#fbe4e2; color:#a1281f; }
