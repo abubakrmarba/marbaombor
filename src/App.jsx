@@ -84,7 +84,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", minHeight: 500, background: PURPLE, color: "#161615" }}>
+    <div style={{ fontFamily: "system-ui, sans-serif", minHeight: "100vh", background: PURPLE, color: "#161615" }}>
       <style>{css}</style>
 
       <div style={{ background: PURPLE_DARK, padding: "10px 20px", display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap", borderBottom: `1px solid ${PURPLE_BORDER}` }}>
