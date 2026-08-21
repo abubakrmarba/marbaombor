@@ -17,13 +17,7 @@ function formatDate(iso) {
 
 function LogoMark({ size = 20, sub = true }) {
   return (
-    <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
-      <div style={{ display: "inline-flex" }}>
-        <div style={{ background: "#fff", color: "#111", border: "2px solid #111", padding: `${size * 0.18}px ${size * 0.45}px`, fontSize: size, fontWeight: 900, fontStyle: "italic", letterSpacing: -0.5, lineHeight: 1 }}>MAR</div>
-        <div style={{ background: ORANGE, color: "#fff", marginLeft: -2, padding: `${size * 0.18}px ${size * 0.45}px`, fontSize: size, fontWeight: 900, fontStyle: "italic", letterSpacing: -0.5, lineHeight: 1 }}>BA</div>
-      </div>
-      {sub && <div style={{ fontSize: Math.max(8, size * 0.34), letterSpacing: 3, fontWeight: 700 }}>OMBOR</div>}
-    </div>
+    <img src="/logo.png" alt="MARBA" style={{ height: size * 2.6, width: "auto", borderRadius: "50%" }} />
   );
 }
 
@@ -63,7 +57,7 @@ export default function App() {
 
   if (!session) {
     return (
-      <div style={{ fontFamily: "system-ui, sans-serif", minHeight: 500, display: "flex", alignItems: "center", justifyContent: "center", background: "#141412", padding: 24 }}>
+      <div style={{ fontFamily: "system-ui, sans-serif", minHeight: 500, display: "flex", alignItems: "center", justifyContent: "center", background: "#241207", padding: 24 }}>
         <style>{css}</style>
         <div style={{ width: "100%", maxWidth: 380 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 28, color: "#fff" }}><LogoMark size={26} /></div>
@@ -87,7 +81,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", minHeight: 500, background: "#F3F2EC", color: "#161615" }}>
+    <div style={{ fontFamily: "system-ui, sans-serif", minHeight: 500, background: "#FFF6E6", color: "#161615" }}>
       <style>{css}</style>
       <div style={{ background: "#161615", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <div style={{ color: "#fff" }}><LogoMark size={16} sub={false} /></div>
