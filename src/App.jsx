@@ -6,7 +6,7 @@ const SELLER_NAMES = ["Azizxon", "Doniyorjon", "Jahongir", "Javohirbek", "Hamidj
 const ORANGE = "#E9642B";
 const ORANGE_DARK = "#C24F1F";
 
-function fmt(n) { return (Number(n) || 0).toLocaleString("uz-UZ") + " so'm"; }
+function fmt(n) { return "$" + (Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
 
 function LogoMark({ size = 20, sub = true }) {
   return (
