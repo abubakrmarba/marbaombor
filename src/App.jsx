@@ -155,7 +155,7 @@ function OmborSection() {
     let imageUrl = form.image_url || null;
     try { if (form.imageFile) imageUrl = await uploadImage(form.imageFile); }
     catch (e) { alert("Rasm yuklashda xatolik: " + e.message); setUploading(false); return; }
-    const payload = { name: form.name.trim(), price: Number(form.price) || 0, cost_price: Number(form.cost_price) || 0, qty: Number(form.qty) || 0, image_url: imageUrl };
+    const payload = { name: form.name.trim(), price: Number(form.price) || 0, cost_price: Number(form.cost_price) || 0, qty: Number(form.qty) || 0, image_url: imageUrl, birlik: form.birlik || "dona" };
     if (form.id) await supabase.from("products").update(payload).eq("id", form.id);
     else await supabase.from("products").insert(payload);
     setUploading(false); setForm(null); refresh();
@@ -173,7 +173,7 @@ function OmborSection() {
           <Search size={16} style={{ position: "absolute", left: 12, top: 12, color: "#8a887e" }} />
           <input className="ob-input" style={{ paddingLeft: 36 }} placeholder="Nomini yozing (masalan: fil → filtr topiladi)" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <button className="ob-btn ob-btn-primary" onClick={() => setForm({ name: "", price: "", cost_price: "", qty: "", image_url: null, imageFile: null })}>
+        <button className="ob-btn ob-btn-primary" onClick={() => setForm({ name: "", price: "", cost_price: "", qty: "", image_url: null, imageFile: null, birlik: "dona" })}>
           <Plus size={14} style={{ verticalAlign: -2 }} /> Yangi tovar
         </button>
       </div>
@@ -187,7 +187,7 @@ function OmborSection() {
           <EmptyState text="Hech narsa topilmadi." />
         ) : filtered.map((p) => (
           <ProductRow key={p.id} p={p}
-            onEdit={() => setForm({ id: p.id, name: p.name, price: p.price, cost_price: p.cost_price, qty: p.qty, image_url: p.image_url, imageFile: null })}
+            onEdit={() => setForm({ id: p.id, name: p.name, price: p.price, cost_price: p.cost_price, qty: p.qty, image_url: p.image_url, imageFile: null, birlik: p.birlik || "dona" })}
             onDelete={() => deleteItem(p.id)} />
         ))}
       </div>
@@ -216,7 +216,19 @@ function ProductForm({ form, setForm, uploading, onSave, onCancel, fileInputRef 
             <input type="number" className="ob-input" placeholder="Kirim narxi ($)" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} />
             <input type="number" className="ob-input" placeholder="Sotuv narxi ($)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
           </div>
-          <input type="number" className="ob-input" placeholder="Miqdori" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <input type="number" className="ob-input" placeholder="Miqdori" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })} />
+            <div style={{ display: "flex", gap: 6 }}>
+              <button type="button" onClick={() => setForm({ ...form, birlik: "dona" })}
+                className="ob-btn" style={{ flex: 1, background: form.birlik !== "komplekt" ? ORANGE : "#f7f6f1", color: form.birlik !== "komplekt" ? "#fff" : "#161615", padding: "10px 8px", fontSize: 13 }}>
+                Dona
+              </button>
+              <button type="button" onClick={() => setForm({ ...form, birlik: "komplekt" })}
+                className="ob-btn" style={{ flex: 1, background: form.birlik === "komplekt" ? ORANGE : "#f7f6f1", color: form.birlik === "komplekt" ? "#fff" : "#161615", padding: "10px 8px", fontSize: 13 }}>
+                Komplekt
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
@@ -236,7 +248,7 @@ function ProductRow({ p, onEdit, onDelete, extra }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: 14.5 }}>{p.name}</div>
         <div style={{ fontSize: 12.5, color: "#8a887e" }}>
-          Kirim: {fmt(p.cost_price)} • Sotuv: {fmt(p.price)} • Miqdor: <span style={{ color: p.qty <= 0 ? "#c0392b" : "inherit", fontWeight: p.qty <= 0 ? 700 : 400 }}>{p.qty}</span>
+          Kirim: {fmt(p.cost_price)} • Sotuv: {fmt(p.price)} • Miqdor: <span style={{ color: p.qty <= 0 ? "#c0392b" : "inherit", fontWeight: p.qty <= 0 ? 700 : 400 }}>{p.qty} {p.birlik === "komplekt" ? "komplekt" : "dona"}</span>
         </div>
         <div style={{ fontSize: 12, color: "#2c7a4b", fontWeight: 600, marginTop: 2 }}>Foyda (birlik): {fmt((Number(p.price) || 0) - (Number(p.cost_price) || 0))}</div>
       </div>
@@ -302,7 +314,7 @@ function UyOmborSection({ sellerName }) {
     let imageUrl = form.image_url || null;
     try { if (form.imageFile) imageUrl = await uploadImage(form.imageFile); }
     catch (e) { alert("Rasm yuklashda xatolik: " + e.message); setUploading(false); return; }
-    const payload = { name: form.name.trim(), price: Number(form.price) || 0, cost_price: Number(form.cost_price) || 0, qty: Number(form.qty) || 0, image_url: imageUrl };
+    const payload = { name: form.name.trim(), price: Number(form.price) || 0, cost_price: Number(form.cost_price) || 0, qty: Number(form.qty) || 0, image_url: imageUrl, birlik: form.birlik || "dona" };
     if (form.id) await supabase.from("uy_ombor").update(payload).eq("id", form.id);
     else await supabase.from("uy_ombor").insert(payload);
     setUploading(false); setForm(null); refresh();
@@ -322,7 +334,7 @@ function UyOmborSection({ sellerName }) {
     if (existing) {
       await supabase.from("products").update({ qty: existing.qty + qty }).eq("id", existing.id);
     } else {
-      await supabase.from("products").insert({ name: item.name, price: item.price, cost_price: item.cost_price, qty, image_url: item.image_url });
+      await supabase.from("products").insert({ name: item.name, price: item.price, cost_price: item.cost_price, qty, image_url: item.image_url, birlik: item.birlik || "dona" });
     }
     await supabase.from("uy_ombor").update({ qty: item.qty - qty }).eq("id", item.id);
     await supabase.from("uy_ombor_transfers").insert({ product_name: item.name, qty, seller_name: sellerName });
@@ -340,7 +352,7 @@ function UyOmborSection({ sellerName }) {
           <input className="ob-input" style={{ paddingLeft: 36 }} placeholder="Nomini yozing..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <button className="ob-btn ob-btn-ghost" onClick={loadHistory}>Obmen tarixi</button>
-        <button className="ob-btn ob-btn-primary" onClick={() => setForm({ name: "", price: "", cost_price: "", qty: "", image_url: null, imageFile: null })}>
+        <button className="ob-btn ob-btn-primary" onClick={() => setForm({ name: "", price: "", cost_price: "", qty: "", image_url: null, imageFile: null, birlik: "dona" })}>
           <Plus size={14} style={{ verticalAlign: -2 }} /> Yangi tovar
         </button>
       </div>
@@ -369,7 +381,7 @@ function UyOmborSection({ sellerName }) {
       <div style={{ display: "grid", gap: 10 }}>
         {filtered.length === 0 ? <EmptyState text="Uy omborda hech narsa yo'q." /> : filtered.map((p) => (
           <ProductRow key={p.id} p={p}
-            onEdit={() => setForm({ id: p.id, name: p.name, price: p.price, cost_price: p.cost_price, qty: p.qty, image_url: p.image_url, imageFile: null })}
+            onEdit={() => setForm({ id: p.id, name: p.name, price: p.price, cost_price: p.cost_price, qty: p.qty, image_url: p.image_url, imageFile: null, birlik: p.birlik || "dona" })}
             onDelete={() => deleteItem(p.id)}
             extra={
               <div style={{ display: "flex", gap: 6, alignItems: "center", marginRight: 6 }}>
@@ -430,7 +442,7 @@ function ReviziyaSection({ sellerName }) {
             <div key={p.id} className="ob-card" style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 160 }}>
                 <div style={{ fontWeight: 700, fontSize: 14.5 }}>{p.name}</div>
-                <div style={{ fontSize: 12.5, color: "#8a887e" }}>Tizimda: {p.qty} dona</div>
+                <div style={{ fontSize: 12.5, color: "#8a887e" }}>Tizimda: {p.qty} {p.birlik === "komplekt" ? "komplekt" : "dona"}</div>
               </div>
               <input type="number" className="ob-input" style={{ width: 100 }} placeholder="Haqiqiy son"
                 value={actuals[p.id] ?? ""} onChange={(e) => setActuals((a) => ({ ...a, [p.id]: e.target.value }))} />
