@@ -149,10 +149,17 @@ function OmborSection() {
   async function uploadImage(file) {
     const ext = file.name.split(".").pop();
     const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabase.storage.from("part-images").upload(path, file);
-    if (error) throw error;
-    const { data } = supabase.storage.from("part-images").getPublicUrl(path);
-    return data.publicUrl;
+    let lastError = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error } = await supabase.storage.from("part-images").upload(path, file);
+      if (!error) {
+        const { data } = supabase.storage.from("part-images").getPublicUrl(path);
+        return data.publicUrl;
+      }
+      lastError = error;
+      await new Promise((r) => setTimeout(r, 600));
+    }
+    throw lastError;
   }
 
   async function saveForm() {
@@ -312,10 +319,17 @@ function UyOmborSection({ sellerName }) {
   async function uploadImage(file) {
     const ext = file.name.split(".").pop();
     const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabase.storage.from("part-images").upload(path, file);
-    if (error) throw error;
-    const { data } = supabase.storage.from("part-images").getPublicUrl(path);
-    return data.publicUrl;
+    let lastError = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error } = await supabase.storage.from("part-images").upload(path, file);
+      if (!error) {
+        const { data } = supabase.storage.from("part-images").getPublicUrl(path);
+        return data.publicUrl;
+      }
+      lastError = error;
+      await new Promise((r) => setTimeout(r, 600));
+    }
+    throw lastError;
   }
 
   async function saveForm() {
