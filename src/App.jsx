@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Search, Plus, Trash2, Pencil, LogOut, Package, Image as ImageIcon,
-  Warehouse, ClipboardCheck, Undo2, BarChart3, ArrowRightLeft, X
+  Warehouse, ClipboardCheck, Undo2, BarChart3, ArrowRightLeft, X, Sparkles, Video
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 
@@ -96,6 +96,7 @@ export default function App() {
           <NavTab icon={<ClipboardCheck size={16} />} label="Reviziya" active={section === "reviziya"} onClick={() => setSection("reviziya")} />
           <NavTab icon={<Undo2 size={16} />} label="Vazvrat" active={section === "vazvrat"} onClick={() => setSection("vazvrat")} />
           <NavTab icon={<BarChart3 size={16} />} label="Statistika" active={section === "statistika"} onClick={() => setSection("statistika")} />
+          <NavTab icon={<Sparkles size={16} />} label="Stories" active={section === "stories"} onClick={() => setSection("stories")} />
         </div>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
           <span style={{ color: "#d9d0e6", fontSize: 13.5 }}>Xodim: <b style={{ color: "#fff" }}>{sellerName}</b></span>
@@ -109,6 +110,7 @@ export default function App() {
         {section === "reviziya" && <ReviziyaSection sellerName={sellerName} />}
         {section === "vazvrat" && <VazvratSection sellerName={sellerName} />}
         {section === "statistika" && <StatistikaSection />}
+        {section === "stories" && <StoriesSection />}
       </div>
     </div>
   );
@@ -663,6 +665,81 @@ function StatistikaSection() {
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- STORIES ---------------- */
+function StoriesSection() {
+  const [stories, setStories] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => { refresh(); }, []);
+  async function refresh() {
+    const { data } = await supabase.from("stories").select("*").eq("active", true).order("created_at", { ascending: false });
+    setStories(data || []);
+  }
+
+  async function handleFile(file) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const isVideo = file.type.startsWith("video");
+      const ext = file.name.split(".").pop();
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("stories").upload(path, file);
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("stories").getPublicUrl(path);
+      await supabase.from("stories").insert({ media_url: pub.publicUrl, media_type: isVideo ? "video" : "image" });
+      refresh();
+    } catch (e) {
+      alert("Yuklashda xatolik: " + e.message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function deleteStory(id) {
+    if (!confirm("Bu storyni o'chirishga ishonchingiz komilmi?")) return;
+    await supabase.from("stories").update({ active: false }).eq("id", id);
+    refresh();
+  }
+
+  return (
+    <div>
+      <div className="ob-card" style={{ marginBottom: 16 }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>Yangi story qo'shish</div>
+        <div style={{ fontSize: 13, color: "#8a887e", marginBottom: 12 }}>Rasm yoki video yuklang — mijoz mobil ilovasida Market bo'limi tepasida ko'rinadi.</div>
+        <input ref={fileInputRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
+        <button className="ob-btn ob-btn-primary" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+          {uploading ? "Yuklanmoqda..." : "Rasm / Video tanlash"}
+        </button>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12 }}>
+        {stories.length === 0 ? (
+          <div style={{ gridColumn: "1 / -1" }}><EmptyState text="Hali story qo'shilmagan." /></div>
+        ) : stories.map((s) => (
+          <div key={s.id} className="ob-card" style={{ padding: 10 }}>
+            <div style={{ width: "100%", aspectRatio: "1", borderRadius: 10, overflow: "hidden", background: "#f7f6f1", marginBottom: 8, position: "relative" }}>
+              {s.media_type === "video" ? (
+                <video src={s.media_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} muted />
+              ) : (
+                <img src={s.media_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              )}
+              {s.media_type === "video" && (
+                <div style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.55)", borderRadius: 6, padding: 4 }}>
+                  <Video size={12} color="#fff" />
+                </div>
+              )}
+            </div>
+            <button className="ob-btn ob-btn-danger" style={{ width: "100%", padding: "6px 0", fontSize: 12.5 }} onClick={() => deleteStory(s.id)}>
+              <Trash2 size={12} style={{ verticalAlign: -1 }} /> O'chirish
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
