@@ -673,13 +673,30 @@ function StatistikaSection() {
 /* ---------------- STORIES ---------------- */
 function StoriesSection() {
   const [stories, setStories] = useState([]);
+  const [viewCounts, setViewCounts] = useState({});
   const [uploading, setUploading] = useState(false);
+  const [viewersFor, setViewersFor] = useState(null);
+  const [viewersList, setViewersList] = useState([]);
   const fileInputRef = useRef(null);
 
   useEffect(() => { refresh(); }, []);
   async function refresh() {
     const { data } = await supabase.from("stories").select("*").eq("active", true).order("created_at", { ascending: false });
     setStories(data || []);
+    const { data: views } = await supabase.from("story_views").select("story_id");
+    const counts = {};
+    (views || []).forEach((v) => { counts[v.story_id] = (counts[v.story_id] || 0) + 1; });
+    setViewCounts(counts);
+  }
+
+  async function showViewers(storyId) {
+    const { data } = await supabase
+      .from("story_views")
+      .select("viewed_at, customers(name)")
+      .eq("story_id", storyId)
+      .order("viewed_at", { ascending: false });
+    setViewersList(data || []);
+    setViewersFor(storyId);
   }
 
   async function handleFile(file) {
@@ -735,12 +752,38 @@ function StoriesSection() {
                 </div>
               )}
             </div>
+            <div onClick={() => showViewers(s.id)} style={{ textAlign: "center", fontSize: 12, color: "#8a887e", marginBottom: 8, cursor: "pointer" }}>
+              {viewCounts[s.id] || 0} kishi ko'rdi
+            </div>
             <button className="ob-btn ob-btn-danger" style={{ width: "100%", padding: "6px 0", fontSize: 12.5 }} onClick={() => deleteStory(s.id)}>
               <Trash2 size={12} style={{ verticalAlign: -1 }} /> O'chirish
             </button>
           </div>
         ))}
       </div>
+
+      {viewersFor && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }} onClick={() => setViewersFor(null)}>
+          <div className="ob-card" style={{ maxWidth: 360, width: "90%", maxHeight: "70vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ fontWeight: 700 }}>Ko'rganlar ({viewersList.length})</div>
+              <button className="ob-btn ob-btn-ghost" style={{ padding: "5px 9px" }} onClick={() => setViewersFor(null)}><X size={14} /></button>
+            </div>
+            {viewersList.length === 0 ? (
+              <div style={{ color: "#8a887e", fontSize: 13.5 }}>Hali hech kim ko'rmagan.</div>
+            ) : (
+              <div style={{ display: "grid", gap: 8 }}>
+                {viewersList.map((v, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, borderBottom: "1px solid #efeee7", paddingBottom: 6 }}>
+                    <span>{v.customers?.name || "Noma'lum"}</span>
+                    <span style={{ color: "#8a887e", fontSize: 12 }}>{formatDate(v.viewed_at)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
