@@ -137,7 +137,11 @@ function OmborSection() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return products;
-    return products.filter((p) => p.name.toLowerCase().includes(q));
+    const terms = q.split(/\s+/).filter(Boolean);
+    return products.filter((p) => {
+      const nameLower = p.name.toLowerCase();
+      return terms.every((term) => nameLower.includes(term));
+    });
   }, [products, search]);
 
   async function uploadImage(file) {
@@ -296,7 +300,11 @@ function UyOmborSection({ sellerName }) {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return items;
-    return items.filter((p) => p.name.toLowerCase().includes(q));
+    const terms = q.split(/\s+/).filter(Boolean);
+    return items.filter((p) => {
+      const nameLower = p.name.toLowerCase();
+      return terms.every((term) => nameLower.includes(term));
+    });
   }, [items, search]);
 
   async function uploadImage(file) {
@@ -501,7 +509,7 @@ function VazvratSection({ sellerName }) {
   async function searchCustomer() {
     const id = customerId.trim();
     setError("");
-    if (!/^\d{8}$/.test(id)) { setError("Mijoz ID 8 xonali bo'lishi kerak"); return; }
+    if (!/^\d{4,8}$/.test(id)) { setError("Mijoz ID 4 yoki 8 xonali bo'lishi kerak"); return; }
     const { data } = await supabase.from("customers").select("*").eq("id", id).maybeSingle();
     if (data) setCustomer(data); else setError("Bunday mijoz topilmadi");
   }
@@ -509,7 +517,11 @@ function VazvratSection({ sellerName }) {
   const productResults = useMemo(() => {
     const q = productSearch.trim().toLowerCase();
     if (!q) return [];
-    return products.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 8);
+    const terms = q.split(/\s+/).filter(Boolean);
+    return products.filter((p) => {
+      const nameLower = p.name.toLowerCase();
+      return terms.every((term) => nameLower.includes(term));
+    }).slice(0, 8);
   }, [productSearch, products]);
 
   async function submitReturn() {
@@ -535,7 +547,7 @@ function VazvratSection({ sellerName }) {
       <div className="ob-card">
         <div style={{ fontWeight: 700, marginBottom: 12 }}>1. Mijozni toping</div>
         <div style={{ display: "flex", gap: 8 }}>
-          <input className="ob-input" placeholder="Mijoz ID (8 xonali)" value={customerId}
+          <input className="ob-input" placeholder="Mijoz ID (4 yoki 8 xonali)" value={customerId}
             onChange={(e) => setCustomerId(e.target.value.replace(/\D/g, "").slice(0, 8))}
             onKeyDown={(e) => e.key === "Enter" && searchCustomer()} />
           <button className="ob-btn ob-btn-dark" onClick={searchCustomer}><Search size={15} /></button>
