@@ -27,7 +27,7 @@ function formatDate(iso) {
 
 function LogoMark({ size = 20 }) {
   return (
-    <img src="/logo.png" alt="MARBA" style={{ height: size * 2.6, width: "auto", borderRadius: "50%" }} />
+    <img src="/logo.png" alt="MARBA" style={{ height: size * 1.6, width: "auto", maxWidth: 160 }} />
   );
 }
 
