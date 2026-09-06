@@ -633,74 +633,57 @@ function ReceiptOverlay({ data, onClose }) {
 }
 
 function ReceiptContent({ data }) {
-  const { customer, purchase, seller, sellerPhone } = data;
-  const telegramQr = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent("https://t.me/marba_zapchast")}`;
-
+  const { customer, purchase, seller } = data;
   return (
-    <div style={{ width: "210mm", minHeight: "297mm", padding: "8mm", color: "#111", fontFamily: "system-ui, sans-serif", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
-
-      {/* YUQORI QISM - taxminan 20% balandlik */}
-      <div style={{ height: "55mm", display: "flex", borderBottom: "2px solid #111", paddingBottom: "4mm", marginBottom: "4mm", flexShrink: 0 }}>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", fontSize: 11, lineHeight: 1.9 }}>
-          <div>Buyurtma #: <b>{purchase.order_no || "-"}</b></div>
-          <div>Mijoz ID: <b style={{ fontFamily: "monospace" }}>{customer?.id || "-"}</b></div>
-          <div>Mijoz tel: <b>{customer?.phone || "-"}</b></div>
-          <div>Sotuvchi tel: <b>{sellerPhone || "-"}</b></div>
-        </div>
-
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-          <LogoMark size={14} />
-          <div style={{ fontSize: 10, marginTop: "3mm", lineHeight: 1.5 }}>
-            <div style={{ fontWeight: 700 }}>Yetkazib berish manzili</div>
-            <div>{customer?.viloyat || ""}{customer?.manzil ? `, ${customer.manzil}` : ""}</div>
+    <div style={{ padding: 28, color: "#111", fontFamily: "system-ui, sans-serif" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "3px solid #111", paddingBottom: 14, marginBottom: 16, gap: 10, flexWrap: "wrap" }}>
+        <div>
+          <LogoMark size={18} />
+          <div style={{ marginTop: 10, fontSize: 13.5, lineHeight: 1.7 }}>
+            <div>Mijoz ID: <b style={{ fontFamily: "monospace" }}>{customer?.id}</b></div>
+            <div>Mijoz: <b>{customer?.name}</b></div>
+            <div>Manzil: {customer?.viloyat}{customer?.manzil ? `, ${customer.manzil}` : ""}</div>
           </div>
         </div>
-
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center", fontSize: 10.5 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}><Instagram size={12} /> @marba_avtoparts</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: "2mm" }}><Send size={12} /> @marba_zapchast</div>
-          <img src={telegramQr} alt="Telegram QR" style={{ width: "18mm", height: "18mm", marginTop: "3mm" }} />
-          <div style={{ marginTop: "1mm", fontWeight: 700 }}>Obuna bo'ling</div>
+        <div style={{ textAlign: "right", fontSize: 12.5 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end", marginBottom: 4 }}><Instagram size={14} /> @marba_avtoparts</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end", marginBottom: 10 }}><Send size={14} /> @marba_zapchast</div>
+          <div>Sana: {formatDate(purchase.date)}</div>
+          <div>Sotuvchi: {seller}</div>
         </div>
       </div>
-
-      {/* EHTIYOT QISMLAR JADVALI - Excel uslubida, 25 qatorgacha sigadi */}
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, flex: 1 }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign: "left", padding: "1.5mm 2mm", border: "1px solid #999", background: "#f0f0f0" }}>Nomi</th>
-            <th style={{ textAlign: "center", padding: "1.5mm 2mm", border: "1px solid #999", background: "#f0f0f0", width: "18mm" }}>Miqdori</th>
-            <th style={{ textAlign: "right", padding: "1.5mm 2mm", border: "1px solid #999", background: "#f0f0f0", width: "24mm" }}>Narx</th>
-            <th style={{ textAlign: "right", padding: "1.5mm 2mm", border: "1px solid #999", background: "#f0f0f0", width: "28mm" }}>Umumiy narx</th>
-          </tr>
-        </thead>
+      {customer?.delivery_lat && customer?.delivery_lng && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
+          <div style={{ textAlign: "center" }}>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(`https://yandex.uz/maps/?pt=${customer.delivery_lng},${customer.delivery_lat}&z=16&l=map`)}`}
+              alt="Manzil QR"
+              style={{ width: 90, height: 90 }}
+            />
+            <div style={{ fontSize: 10.5, color: "#666", marginTop: 4 }}>Yetkazib berish manzili</div>
+          </div>
+        </div>
+      )}
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, marginBottom: 14 }}>
+        <thead><tr><th style={{ textAlign: "left", padding: "6px 4px", borderBottom: "2px solid #111" }}>Nomi</th><th style={{ textAlign: "center", padding: "6px 4px", borderBottom: "2px solid #111" }}>Soni</th><th style={{ textAlign: "right", padding: "6px 4px", borderBottom: "2px solid #111" }}>Narxi</th><th style={{ textAlign: "right", padding: "6px 4px", borderBottom: "2px solid #111" }}>Summa</th></tr></thead>
         <tbody>
           {purchase.items.map((it, i) => (
-            <tr key={i}>
-              <td style={{ padding: "1.5mm 2mm", border: "1px solid #ccc" }}>{it.name}</td>
-              <td style={{ padding: "1.5mm 2mm", border: "1px solid #ccc", textAlign: "center" }}>{it.qty}</td>
-              <td style={{ padding: "1.5mm 2mm", border: "1px solid #ccc", textAlign: "right" }}>{fmt(it.price)}</td>
-              <td style={{ padding: "1.5mm 2mm", border: "1px solid #ccc", textAlign: "right" }}>{fmt(it.price * it.qty)}</td>
-            </tr>
+            <tr key={i}><td style={{ padding: "6px 4px", borderBottom: "1px solid #ddd" }}>{it.name}</td><td style={{ padding: "6px 4px", borderBottom: "1px solid #ddd", textAlign: "center" }}>{it.qty}</td><td style={{ padding: "6px 4px", borderBottom: "1px solid #ddd", textAlign: "right" }}>{fmt(it.price)}</td><td style={{ padding: "6px 4px", borderBottom: "1px solid #ddd", textAlign: "right" }}>{fmt(it.price * it.qty)}</td></tr>
           ))}
         </tbody>
       </table>
-
-      {/* PASTKI QATOR - Jami, Eski qarz, Xozirgi qarz - uzunasiga */}
-      <div style={{ display: "flex", borderTop: "2px solid #111", marginTop: "4mm", paddingTop: "3mm", fontSize: 12, flexShrink: 0 }}>
-        <div style={{ flex: 1, textAlign: "center" }}>
-          <div style={{ fontSize: 10, color: "#666" }}>Jami</div>
-          <div style={{ fontWeight: 700 }}>{fmt(purchase.total)}</div>
+      <div style={{ marginLeft: "auto", width: 240, fontSize: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
+          <span>Jami:</span><b>{fmt(purchase.total)}</b>
         </div>
-        <div style={{ flex: 1, textAlign: "center", borderLeft: "1px solid #ccc" }}>
-          <div style={{ fontSize: 10, color: "#666" }}>Eski qarz</div>
-          <div style={{ fontWeight: 700 }}>{fmt(purchase.oldDebt)}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
+          <span>Eski qarz:</span><b>{fmt(purchase.oldDebt)}</b>
         </div>
-        <div style={{ flex: 1, textAlign: "center", borderLeft: "1px solid #ccc" }}>
-          <div style={{ fontSize: 10, color: "#666" }}>Xozirgi qarz</div>
-          <div style={{ fontWeight: 700, color: purchase.newDebt > 0 ? "#a1281f" : "#2c7a4b" }}>{fmt(purchase.newDebt)}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", color: purchase.newDebt > 0 ? "#a1281f" : "#2c7a4b" }}>
+          <span>Umumiy qarz:</span><b>{fmt(purchase.newDebt)}</b>
         </div>
       </div>
+      <div style={{ borderTop: "1px solid #ccc", marginTop: 18, paddingTop: 10, fontSize: 11.5, color: "#666", textAlign: "center" }}>MARBA AUTO PARTS \u2014 Xaridingiz uchun rahmat!</div>
     </div>
   );
 }
