@@ -634,9 +634,10 @@ function ReceiptOverlay({ data, onClose }) {
 
 function ReceiptContent({ data }) {
   const { customer, purchase, seller } = data;
+  const hasQr = customer?.delivery_lat && customer?.delivery_lng;
   return (
     <div style={{ padding: 28, color: "#111", fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "3px solid #111", paddingBottom: 14, marginBottom: 16, gap: 10, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "3px solid #111", paddingBottom: 14, marginBottom: 16, gap: 14, flexWrap: "wrap" }}>
         <div>
           <LogoMark size={18} />
           <div style={{ marginTop: 10, fontSize: 13.5, lineHeight: 1.7 }}>
@@ -645,6 +646,18 @@ function ReceiptContent({ data }) {
             <div>Manzil: {customer?.viloyat}{customer?.manzil ? `, ${customer.manzil}` : ""}</div>
           </div>
         </div>
+
+        {hasQr && (
+          <div style={{ textAlign: "center" }}>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`https://yandex.uz/maps/?pt=${customer.delivery_lng},${customer.delivery_lat}&z=16&l=map`)}`}
+              alt="Manzil QR"
+              style={{ width: 84, height: 84 }}
+            />
+            <div style={{ fontSize: 10, color: "#666", marginTop: 4 }}>Yetkazib berish manzili</div>
+          </div>
+        )}
+
         <div style={{ textAlign: "right", fontSize: 12.5 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end", marginBottom: 4 }}><Instagram size={14} /> @marba_avtoparts</div>
           <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end", marginBottom: 10 }}><Send size={14} /> @marba_zapchast</div>
@@ -652,18 +665,7 @@ function ReceiptContent({ data }) {
           <div>Sotuvchi: {seller}</div>
         </div>
       </div>
-      {customer?.delivery_lat && customer?.delivery_lng && (
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
-          <div style={{ textAlign: "center" }}>
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(`https://yandex.uz/maps/?pt=${customer.delivery_lng},${customer.delivery_lat}&z=16&l=map`)}`}
-              alt="Manzil QR"
-              style={{ width: 90, height: 90 }}
-            />
-            <div style={{ fontSize: 10.5, color: "#666", marginTop: 4 }}>Yetkazib berish manzili</div>
-          </div>
-        </div>
-      )}
+
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, marginBottom: 14 }}>
         <thead><tr><th style={{ textAlign: "left", padding: "6px 4px", borderBottom: "2px solid #111" }}>Nomi</th><th style={{ textAlign: "center", padding: "6px 4px", borderBottom: "2px solid #111" }}>Soni</th><th style={{ textAlign: "right", padding: "6px 4px", borderBottom: "2px solid #111" }}>Narxi</th><th style={{ textAlign: "right", padding: "6px 4px", borderBottom: "2px solid #111" }}>Summa</th></tr></thead>
         <tbody>
@@ -672,17 +674,22 @@ function ReceiptContent({ data }) {
           ))}
         </tbody>
       </table>
-      <div style={{ marginLeft: "auto", width: 240, fontSize: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
-          <span>Jami:</span><b>{fmt(purchase.total)}</b>
+
+      <div style={{ display: "flex", borderTop: "2px solid #111", paddingTop: 10, fontSize: 13.5 }}>
+        <div style={{ flex: 1, textAlign: "center" }}>
+          <div style={{ fontSize: 10.5, color: "#666" }}>Jami</div>
+          <b>{fmt(purchase.total)}</b>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
-          <span>Eski qarz:</span><b>{fmt(purchase.oldDebt)}</b>
+        <div style={{ flex: 1, textAlign: "center", borderLeft: "1px solid #ddd" }}>
+          <div style={{ fontSize: 10.5, color: "#666" }}>Eski qarz</div>
+          <b>{fmt(purchase.oldDebt)}</b>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", color: purchase.newDebt > 0 ? "#a1281f" : "#2c7a4b" }}>
-          <span>Umumiy qarz:</span><b>{fmt(purchase.newDebt)}</b>
+        <div style={{ flex: 1, textAlign: "center", borderLeft: "1px solid #ddd" }}>
+          <div style={{ fontSize: 10.5, color: "#666" }}>Hozirgi qarz</div>
+          <b style={{ color: purchase.newDebt > 0 ? "#a1281f" : "#2c7a4b" }}>{fmt(purchase.newDebt)}</b>
         </div>
       </div>
+
       <div style={{ borderTop: "1px solid #ccc", marginTop: 18, paddingTop: 10, fontSize: 11.5, color: "#666", textAlign: "center" }}>MARBA AUTO PARTS \u2014 Xaridingiz uchun rahmat!</div>
     </div>
   );
@@ -1192,19 +1199,23 @@ function StatistikaSection() {
   const [omborValue, setOmborValue] = useState({ cost: 0, sale: 0 });
   const [uyOmborValue, setUyOmborValue] = useState({ cost: 0, sale: 0 });
   const [driverPayments, setDriverPayments] = useState([]);
+  const [allSales, setAllSales] = useState([]);
+  const [periodTab, setPeriodTab] = useState("bugun");
+  const [calDate, setCalDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   useEffect(() => { load(); }, []);
 
   async function load() {
     setLoading(true);
     const [{ data: sales }, { data: customers }, { data: products }, { data: uyOmbor }, { data: drvPayments }] = await Promise.all([
-      supabase.from("sales").select("seller_name, total"),
+      supabase.from("sales").select("seller_name, total, created_at"),
       supabase.from("customers").select("debt"),
       supabase.from("products").select("price, cost_price, qty"),
       supabase.from("uy_ombor").select("price, cost_price, qty"),
       supabase.from("payments").select("*, customers(name)").not("driver_name", "is", null).order("created_at", { ascending: false }).limit(100),
     ]);
     setDriverPayments(drvPayments || []);
+    setAllSales(sales || []);
 
     const bySeller = {};
     (sales || []).forEach((s) => { bySeller[s.seller_name] = (bySeller[s.seller_name] || 0) + Number(s.total || 0); });
@@ -1224,10 +1235,59 @@ function StatistikaSection() {
     setLoading(false);
   }
 
+  const periodStats = useMemo(() => {
+    const now = new Date();
+    let from, to;
+    if (periodTab === "bugun") {
+      from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      to = new Date(from); to.setDate(to.getDate() + 1);
+    } else if (periodTab === "hafta") {
+      from = new Date(now); from.setDate(from.getDate() - 6); from.setHours(0, 0, 0, 0);
+      to = new Date(now); to.setDate(to.getDate() + 1); to.setHours(0, 0, 0, 0);
+    } else if (periodTab === "oy") {
+      from = new Date(now.getFullYear(), now.getMonth(), 1);
+      to = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    } else {
+      from = new Date(calDate + "T00:00:00");
+      to = new Date(from); to.setDate(to.getDate() + 1);
+    }
+    const filtered = allSales.filter((s) => {
+      const d = new Date(s.created_at);
+      return d >= from && d < to;
+    });
+    const total = filtered.reduce((s, r) => s + Number(r.total || 0), 0);
+    return { total, count: filtered.length };
+  }, [allSales, periodTab, calDate]);
+
   if (loading) return <div style={{ textAlign: "center", color: "#8a887e", padding: 30 }}>Yuklanmoqda...</div>;
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
+      <div className="ob-card">
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>Davriy savdo</div>
+        <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+          {[["bugun", "Bugun"], ["hafta", "1 hafta"], ["oy", "1 oy"], ["kalendar", "Kalendar"]].map(([key, label]) => (
+            <button key={key} type="button" onClick={() => setPeriodTab(key)}
+              className="ob-btn" style={{ background: periodTab === key ? ORANGE : "#232C42", color: "#fff", fontSize: 12.5, padding: "8px 12px" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {periodTab === "kalendar" && (
+          <input type="date" className="ob-input" style={{ maxWidth: 200, marginBottom: 12 }} value={calDate} onChange={(e) => setCalDate(e.target.value)} />
+        )}
+        <div style={{ display: "flex", gap: 24 }}>
+          <div>
+            <div style={{ fontSize: 11, color: "#98A2B8" }}>JAMI SAVDO</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{fmt(periodStats.total)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "#98A2B8" }}>SOTUVLAR SONI</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{periodStats.count}</div>
+          </div>
+        </div>
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
         <StatCard label="MIJOZLAR JORIY QARZI" value={fmt(totalDebt)} color="#a1281f" />
         <StatCard label="OMBOR QIYMATI (kirim narxida)" value={fmt(omborValue.cost)} />
