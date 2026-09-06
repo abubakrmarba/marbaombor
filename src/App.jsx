@@ -625,17 +625,20 @@ function StatistikaSection() {
   const [totalDebt, setTotalDebt] = useState(0);
   const [omborValue, setOmborValue] = useState({ cost: 0, sale: 0 });
   const [uyOmborValue, setUyOmborValue] = useState({ cost: 0, sale: 0 });
+  const [driverPayments, setDriverPayments] = useState([]);
 
   useEffect(() => { load(); }, []);
 
   async function load() {
     setLoading(true);
-    const [{ data: sales }, { data: customers }, { data: products }, { data: uyOmbor }] = await Promise.all([
+    const [{ data: sales }, { data: customers }, { data: products }, { data: uyOmbor }, { data: drvPayments }] = await Promise.all([
       supabase.from("sales").select("seller_name, total"),
       supabase.from("customers").select("debt"),
       supabase.from("products").select("price, cost_price, qty"),
       supabase.from("uy_ombor").select("price, cost_price, qty"),
+      supabase.from("payments").select("*, customers(name)").not("driver_name", "is", null).order("created_at", { ascending: false }).limit(100),
     ]);
+    setDriverPayments(drvPayments || []);
 
     const bySeller = {};
     (sales || []).forEach((s) => { bySeller[s.seller_name] = (bySeller[s.seller_name] || 0) + Number(s.total || 0); });
@@ -675,6 +678,28 @@ function StatistikaSection() {
               <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, borderBottom: "1px solid #efeee7", paddingBottom: 6 }}>
                 <span style={{ fontWeight: 600 }}>{name}</span>
                 <span style={{ fontWeight: 700 }}>{fmt(total)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="ob-card">
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>Haydovchilar qabul qilgan tolovlar</div>
+        {driverPayments.length === 0 ? <div style={{ color: "#8a887e", fontSize: 13.5 }}>Hali haydovchi orqali tolov qilinmagan.</div> : (
+          <div style={{ display: "grid", gap: 8 }}>
+            {driverPayments.map((p) => (
+              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5, borderBottom: "1px solid #efeee7", paddingBottom: 8, flexWrap: "wrap", gap: 4 }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{p.driver_name} {"\u2192"} {p.customers?.name || "Nomalum mijoz"}</div>
+                  <div style={{ color: "#8a887e", fontSize: 12 }}>{formatDate(p.created_at)}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: 700 }}>{fmt(p.amount)}</div>
+                  {p.currency === "SOM" && p.original_amount ? (
+                    <div style={{ fontSize: 11.5, color: "#8a887e" }}>{Number(p.original_amount).toLocaleString("en-US")} som</div>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>
