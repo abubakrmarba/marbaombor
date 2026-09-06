@@ -86,6 +86,10 @@ export default function App() {
 
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const newOrders = useMemo(() => orders.filter((o) => o.status === "yangi"), [orders]);
+  const acceptedOrders = useMemo(() => orders.filter((o) => o.status !== "yangi"), [orders]);
+  const newOrdersCount = newOrders.length;
+  const acceptedOrdersCount = acceptedOrders.length;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { if (data.session) initSeller(data.session); });
@@ -104,7 +108,7 @@ export default function App() {
 
   useEffect(() => { if (session) refreshProducts(); }, [session]);
   useEffect(() => { if (section === "history" && session) refreshHistory(); }, [section, session]);
-  useEffect(() => { if (section === "orders" && session) refreshOrders(); }, [section, session]);
+  useEffect(() => { if ((section === "orders" || section === "accepted") && session) refreshOrders(); }, [section, session]);
 
   async function refreshProducts() {
     const { data } = await supabase.from("products").select("*").order("name");
@@ -322,13 +326,14 @@ export default function App() {
           <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
             <div className={`sidebar-item ${section === "statistika" ? "active" : ""}`} onClick={() => setSection("statistika")}><BarChart3 size={17} /> Statistika</div>
 
-            <div className={`sidebar-item ${["sale", "orders", "history", "customers"].includes(section) ? "active" : ""}`} onClick={() => setExpandedGroup(expandedGroup === "sotuvchi" ? null : "sotuvchi")}>
+            <div className={`sidebar-item ${["sale", "orders", "accepted", "history", "customers"].includes(section) ? "active" : ""}`} onClick={() => setExpandedGroup(expandedGroup === "sotuvchi" ? null : "sotuvchi")}>
               <ShoppingCart size={17} /> Sotuvchi
             </div>
             {expandedGroup === "sotuvchi" && (
               <>
                 <div className={`sidebar-sub ${section === "sale" ? "active" : ""}`} onClick={() => setSection("sale")}>Yangi sotuv</div>
-                <div className={`sidebar-sub ${section === "orders" ? "active" : ""}`} onClick={() => setSection("orders")}>Buyurtmalar{orders.length > 0 ? ` (${orders.length})` : ""}</div>
+                <div className={`sidebar-sub ${section === "orders" ? "active" : ""}`} onClick={() => setSection("orders")}>Yangi buyurtmalar{newOrdersCount > 0 ? ` (${newOrdersCount})` : ""}</div>
+                <div className={`sidebar-sub ${section === "accepted" ? "active" : ""}`} onClick={() => setSection("accepted")}>Qabul qilingan{acceptedOrdersCount > 0 ? ` (${acceptedOrdersCount})` : ""}</div>
                 <div className={`sidebar-sub ${section === "history" ? "active" : ""}`} onClick={() => setSection("history")}>Sotuvchi tarixi</div>
                 <div className={`sidebar-sub ${section === "customers" ? "active" : ""}`} onClick={() => setSection("customers")}>Mijozlar</div>
               </>
@@ -370,43 +375,54 @@ export default function App() {
         <div style={{ padding: 20, maxWidth: 1400, margin: "0 auto" }}>
           {section === "orders" && (
             <div className="mb-card">
-              <div style={{ fontWeight: 700, marginBottom: 14 }}>Mijozlardan kelgan buyurtmalar</div>
-              {ordersLoading ? <div style={{ color: "#98A2B8" }}>Yuklanmoqda...</div> : orders.length === 0 ? (
-                <div style={{ textAlign: "center", color: "#98A2B8", padding: "30px 0" }}>Hozircha yangi buyurtma yo'q.</div>
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>Yangi buyurtmalar ({newOrders.length})</div>
+              {ordersLoading ? <div style={{ color: "#98A2B8" }}>Yuklanmoqda...</div> : newOrders.length === 0 ? (
+                <div style={{ textAlign: "center", color: "#98A2B8", padding: "24px 0" }}>Hozircha yangi buyurtma yo'q.</div>
               ) : (
-                <div style={{ display: "grid", gap: 12 }}>
-                  {orders.map((o) => (
-                    <div key={o.id} style={{ border: "1px solid #232C42", borderRadius: 10, padding: 14 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                        <div>
-                          <div style={{ fontWeight: 700 }}>{o.customer?.name || "Noma'lum mijoz"} <span style={{ color: "#98A2B8", fontFamily: "monospace", fontWeight: 400, fontSize: 12.5 }}>({o.customer_id})</span></div>
-                          <div style={{ fontSize: 12.5, color: "#98A2B8" }}>{formatDate(o.created_at)}{o.order_no ? ` \u2022 #${o.order_no}` : ""}</div>
-                        </div>
-                        <div style={{ fontWeight: 700 }}>
-                          Jami: {fmt(o.buyurtma_items.reduce((s, it) => s + it.price * it.qty, 0))}
-                        </div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  {newOrders.map((o) => (
+                    <div key={o.id} style={{ border: "1px solid #232C42", borderRadius: 8, padding: 8 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 4, marginBottom: 3 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13 }}>{o.customer?.name || "Noma'lum"} <span style={{ color: "#98A2B8", fontFamily: "monospace", fontWeight: 400, fontSize: 11 }}>({o.customer_id})</span></div>
+                        <div style={{ fontWeight: 700, fontSize: 13 }}>{fmt(o.buyurtma_items.reduce((s, it) => s + it.price * it.qty, 0))}</div>
                       </div>
-                      <div style={{ fontSize: 13.5, marginBottom: 6 }}>
-                        {o.buyurtma_items.map((it) => `${it.product_name} x${it.qty}`).join(", ")}
+                      <div style={{ fontSize: 11.5, color: "#98A2B8", marginBottom: 3 }}>{formatDate(o.created_at)}{o.order_no ? ` \u2022 #${o.order_no}` : ""}</div>
+                      <div style={{ fontSize: 12, marginBottom: 6, color: "#C7CDDA" }}>{o.buyurtma_items.map((it) => `${it.product_name} x${it.qty}`).join(", ")}</div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <button className="mb-btn mb-btn-primary" style={{ padding: "6px 12px", fontSize: 12.5 }} onClick={() => acceptAndPrint(o)}>Qabul qilish va chop etish</button>
+                        <button className="mb-btn mb-btn-danger" style={{ padding: "6px 12px", fontSize: 12.5 }} onClick={() => cancelOrder(o)}>Bekor qilish</button>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {section === "accepted" && (
+            <div className="mb-card">
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>Qabul qilingan buyurtmalar ({acceptedOrders.length})</div>
+              {ordersLoading ? <div style={{ color: "#98A2B8" }}>Yuklanmoqda...</div> : acceptedOrders.length === 0 ? (
+                <div style={{ textAlign: "center", color: "#98A2B8", padding: "24px 0" }}>Hozircha qabul qilingan buyurtma yo'q.</div>
+              ) : (
+                <div style={{ display: "grid", gap: 6 }}>
+                  {acceptedOrders.map((o) => (
+                    <div key={o.id} style={{ border: "1px solid #232C42", borderRadius: 8, padding: 8 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 4, marginBottom: 3 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13 }}>{o.customer?.name || "Noma'lum"} <span style={{ color: "#98A2B8", fontFamily: "monospace", fontWeight: 400, fontSize: 11 }}>({o.customer_id})</span></div>
+                        <div style={{ fontWeight: 700, fontSize: 12.5, color: orderStatusColor(o.status) }}>{ORDER_STATUS_LABELS[o.status] || o.status}</div>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "#98A2B8", marginBottom: 3 }}>{formatDate(o.created_at)}{o.order_no ? ` \u2022 #${o.order_no}` : ""}</div>
+                      <div style={{ fontSize: 12, marginBottom: 4, color: "#C7CDDA" }}>{o.buyurtma_items.map((it) => `${it.product_name} x${it.qty}`).join(", ")}</div>
                       {(o.packed_by || o.driver_name) && (
-                        <div style={{ fontSize: 12, color: "#2C6FA6", marginBottom: 6 }}>
-                          {o.packed_by ? "\uD83D\uDCE6 Yig'di: " + o.packed_by : ""}{o.packed_by && o.driver_name ? " \u2022 " : ""}{o.driver_name ? "\uD83D\uDE97 Haydovchi: " + o.driver_name : ""}
+                        <div style={{ fontSize: 11.5, color: "#2C6FA6", marginBottom: 6 }}>
+                          {o.packed_by ? "\uD83D\uDCE6 " + o.packed_by : ""}{o.packed_by && o.driver_name ? " \u2022 " : ""}{o.driver_name ? "\uD83D\uDE97 " + o.driver_name : ""}
                         </div>
                       )}
-                      <div style={{ marginBottom: 10, fontSize: 12.5, fontWeight: 700, color: orderStatusColor(o.status) }}>
-                        Holat: {ORDER_STATUS_LABELS[o.status] || o.status}
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {o.status === "qabul_qilindi" && <button className="mb-btn mb-btn-primary" style={{ padding: "6px 12px", fontSize: 12.5 }} onClick={() => setOrderStatus(o, "yigilmoqda")}>Yig'ilmoqda deb belgilash</button>}
+                        <button className="mb-btn mb-btn-danger" style={{ padding: "6px 12px", fontSize: 12.5 }} onClick={() => cancelOrder(o)}>Bekor qilish</button>
                       </div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {o.status === "yangi" && <button className="mb-btn mb-btn-primary" onClick={() => acceptAndPrint(o)}>Qabul qilish va chop etish</button>}
-                        {o.status === "qabul_qilindi" && <button className="mb-btn mb-btn-primary" onClick={() => setOrderStatus(o, "yigilmoqda")}>Yig'ilmoqda deb belgilash</button>}
-                        <button className="mb-btn mb-btn-danger" onClick={() => cancelOrder(o)}>Bekor qilish</button>
-                      </div>
-                      {(o.status === "yigilmoqda" || o.status === "yolda") && (
-                        <div style={{ fontSize: 11.5, color: "#98A2B8", marginTop: 8, fontStyle: "italic" }}>
-                          {o.status === "yigilmoqda" ? "Yig'uv stansiyasida skanerlanishi kutilmoqda." : "Haydovchi yolda - Yetkazildi tugmasi haydovchi ilovasida bosiladi."}
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
