@@ -10,9 +10,14 @@ import { supabase } from "./supabaseClient";
 const SELLER_NAMES = ["Azizxon", "Doniyorjon", "Jahongir", "Javohirbek", "Hamidjon", "Jamshidbek", "Xislatbek", "Mubashirxon", "Jahongiroldi"];
 const ORANGE = "#E9642B";
 const ORANGE_DARK = "#C24F1F";
-const PURPLE_DARK = "#3D2A54";
-const PURPLE = "#4D3966";
-const PURPLE_BORDER = "#5D4976";
+const PURPLE_DARK = "#0B1220";
+const PURPLE = "#141B2E";
+const PURPLE_BORDER = "#232C42";
+const DARK_TEXT = "#E7EAF0";
+const DARK_MUTED = "#98A2B8";
+const DARK_HILITE = "#1B2740";
+const DARK_INPUT_BORDER = "#2A3652";
+const DARK_ROW_BORDER = "#232C42";
 
 function fmt(n) { return "$" + (Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
 function formatDate(iso) {
@@ -42,7 +47,7 @@ const ORDER_STATUS_LABELS = {
   yolda: "Yo'lda", yetkazildi: "Yetkazildi", yakunlandi: "Sotuvga aylandi", bekor_qilindi: "Bekor qilindi",
 };
 function orderStatusColor(status) {
-  if (status === "yangi") return "#8a887e";
+  if (status === "yangi") return "#98A2B8";
   if (status === "qabul_qilindi") return "#2C6FA6";
   if (status === "yigilmoqda" || status === "yolda") return "#B8860B";
   if (status === "yetkazildi" || status === "yakunlandi") return "#2c7a4b";
@@ -53,12 +58,13 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [sellerName, setSellerName] = useState("");
   const [sellerPhone, setSellerPhone] = useState("");
-  const [loginName, setLoginName] = useState(null);
+  const [loginName, setLoginName] = useState("");
   const [loginPass, setLoginPass] = useState("");
   const [loginError, setLoginError] = useState("");
   const [busy, setBusy] = useState(false);
 
   const [section, setSection] = useState("sale");
+  const [expandedGroup, setExpandedGroup] = useState("sotuvchi");
   const [products, setProducts] = useState([]);
 
   const [saleCustomer, setSaleCustomer] = useState(null);
@@ -157,12 +163,12 @@ export default function App() {
   }
 
   async function doLogin() {
-    if (!loginName) { setLoginError("Xodimni tanlang"); return; }
+    if (!loginName.trim()) { setLoginError("Login kiriting"); return; }
     setBusy(true);
-    const email = `${loginName.toLowerCase()}@marba.internal`;
+    const email = `${loginName.trim().toLowerCase().replace(/\s+/g, "")}@marba.internal`;
     const { error } = await supabase.auth.signInWithPassword({ email, password: loginPass });
     setBusy(false);
-    if (error) { setLoginError("Parol noto'g'ri"); return; }
+    if (error) { setLoginError("Login yoki parol notogri"); return; }
     setLoginPass(""); setLoginError("");
   }
   async function doLogout() {
@@ -288,20 +294,18 @@ export default function App() {
 
   if (!session) {
     return (
-      <div style={{ fontFamily: "system-ui, sans-serif", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: PURPLE_DARK, padding: 24 }}>
+      <div style={{ fontFamily: "system-ui, sans-serif", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0B1220", padding: 24 }}>
         <style>{allCss}</style>
         <div style={{ width: "100%", maxWidth: 380 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}><LogoMark size={26} /></div>
-          <div className="mb-card" style={{ background: PURPLE, border: `1px solid ${PURPLE_BORDER}` }}>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Xodimni tanlang</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18 }}>
-              {SELLER_NAMES.map((n) => (
-                <button key={n} onClick={() => { setLoginName(n); setLoginError(""); }} className="mb-btn"
-                  style={{ background: loginName === n ? ORANGE : PURPLE_DARK, color: "#fff", fontSize: 13, padding: "10px 8px" }}>{n}</button>
-              ))}
-            </div>
-            <div style={{ color: "#d9d0e6", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Parol</div>
-            <input type="password" className="mb-input" style={{ background: PURPLE_DARK, border: `1.5px solid ${PURPLE_BORDER}`, color: "#fff", marginBottom: 12 }}
+          <div className="mb-card">
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Tizimga kirish</div>
+            <div style={{ color: "#98A2B8", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Login</div>
+            <input className="mb-input" style={{ marginBottom: 14 }}
+              value={loginName} onChange={(e) => { setLoginName(e.target.value); setLoginError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && doLogin()} placeholder="masalan: azizxon" autoCapitalize="none" />
+            <div style={{ color: "#98A2B8", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Parol</div>
+            <input type="password" className="mb-input" style={{ marginBottom: 12 }}
               value={loginPass} onChange={(e) => setLoginPass(e.target.value)} onKeyDown={(e) => e.key === "Enter" && doLogin()} placeholder="Parolni kiriting" />
             {loginError && <div style={{ color: "#f0837f", fontSize: 13, marginBottom: 10 }}>{loginError}</div>}
             <button className="mb-btn mb-btn-primary" style={{ width: "100%" }} disabled={busy} onClick={doLogin}>{busy ? "..." : "Kirish"}</button>
@@ -312,54 +316,73 @@ export default function App() {
   }
 
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", minHeight: "100vh", background: PURPLE, color: "#161615" }}>
+    <div style={{ fontFamily: "system-ui, sans-serif", minHeight: "100vh", background: PURPLE, color: "#E7EAF0" }}>
       <style>{allCss}</style>
-      <div className="no-print">
-        <div style={{ background: PURPLE_DARK, padding: "10px 20px", display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap", borderBottom: `1px solid ${PURPLE_BORDER}` }}>
-          <img src="/logo.png" alt="MARBA" style={{ height: 42, width: 42, borderRadius: "50%", flexShrink: 0 }} />
-          <div style={{ width: 1, height: 28, background: PURPLE_BORDER, flexShrink: 0 }} />
-          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
-            <div className={`mb-tab ${section === "sale" ? "active" : ""}`} onClick={() => setSection("sale")}><ShoppingCart size={16} /> Yangi sotuv</div>
-            <div className={`mb-tab ${section === "orders" ? "active" : ""}`} onClick={() => setSection("orders")}><Inbox size={16} /> Buyurtmalar{orders.length > 0 ? ` (${orders.length})` : ""}</div>
-            <div className={`mb-tab ${section === "customers" ? "active" : ""}`} onClick={() => setSection("customers")}><Users size={16} /> Mijozlar</div>
-            <div className={`mb-tab ${section === "history" ? "active" : ""}`} onClick={() => setSection("history")}><History size={16} /> Tarix</div>
-            <div style={{ width: 1, height: 20, background: PURPLE_BORDER, margin: "0 4px" }} />
-            <div className={`mb-tab ${section === "ombor" ? "active" : ""}`} onClick={() => setSection("ombor")}><Package size={16} /> Ombor</div>
-            <div className={`mb-tab ${section === "uyombor" ? "active" : ""}`} onClick={() => setSection("uyombor")}><Warehouse size={16} /> Uy ombor</div>
-            <div className={`mb-tab ${section === "reviziya" ? "active" : ""}`} onClick={() => setSection("reviziya")}><ClipboardCheck size={16} /> Reviziya</div>
-            <div className={`mb-tab ${section === "vazvrat" ? "active" : ""}`} onClick={() => setSection("vazvrat")}><Undo2 size={16} /> Vazvrat</div>
-            <div className={`mb-tab ${section === "statistika" ? "active" : ""}`} onClick={() => setSection("statistika")}><BarChart3 size={16} /> Statistika</div>
-            <div className={`mb-tab ${section === "stories" ? "active" : ""}`} onClick={() => setSection("stories")}><Sparkles size={16} /> Stories</div>
+      <div className="no-print" style={{ display: "flex", minHeight: "100vh" }}>
+        <div style={{ width: 230, background: "#0B1220", borderRight: `1px solid ${PURPLE_BORDER}`, display: "flex", flexDirection: "column", padding: "20px 12px", flexShrink: 0 }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 22 }}><LogoMark size={20} /></div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
+            <div className={`sidebar-item ${section === "statistika" ? "active" : ""}`} onClick={() => setSection("statistika")}><BarChart3 size={17} /> Statistika</div>
+
+            <div className={`sidebar-item ${["sale", "orders", "history", "customers"].includes(section) ? "active" : ""}`} onClick={() => setExpandedGroup(expandedGroup === "sotuvchi" ? null : "sotuvchi")}>
+              <ShoppingCart size={17} /> Sotuvchi
+            </div>
+            {expandedGroup === "sotuvchi" && (
+              <>
+                <div className={`sidebar-sub ${section === "sale" ? "active" : ""}`} onClick={() => setSection("sale")}>Yangi sotuv</div>
+                <div className={`sidebar-sub ${section === "orders" ? "active" : ""}`} onClick={() => setSection("orders")}>Buyurtmalar{orders.length > 0 ? ` (${orders.length})` : ""}</div>
+                <div className={`sidebar-sub ${section === "history" ? "active" : ""}`} onClick={() => setSection("history")}>Sotuvchi tarixi</div>
+                <div className={`sidebar-sub ${section === "customers" ? "active" : ""}`} onClick={() => setSection("customers")}>Mijozlar</div>
+              </>
+            )}
+
+            <div className={`sidebar-item ${section === "xodimlar" ? "active" : ""}`} onClick={() => setSection("xodimlar")}><Users size={17} /> Xodimlar</div>
+
+            <div className={`sidebar-item ${["ombor", "uyombor", "vazvrat", "reviziya"].includes(section) ? "active" : ""}`} onClick={() => setExpandedGroup(expandedGroup === "ombor" ? null : "ombor")}>
+              <Package size={17} /> Ombor
+            </div>
+            {expandedGroup === "ombor" && (
+              <>
+                <div className={`sidebar-sub ${section === "ombor" ? "active" : ""}`} onClick={() => setSection("ombor")}>Ombor</div>
+                <div className={`sidebar-sub ${section === "uyombor" ? "active" : ""}`} onClick={() => setSection("uyombor")}>Uy ombor</div>
+                <div className={`sidebar-sub ${section === "vazvrat" ? "active" : ""}`} onClick={() => setSection("vazvrat")}>Vazvrat</div>
+                <div className={`sidebar-sub ${section === "reviziya" ? "active" : ""}`} onClick={() => setSection("reviziya")}>Reviziya</div>
+              </>
+            )}
+
+            <div className={`sidebar-item ${section === "stories" ? "active" : ""}`} onClick={() => setSection("stories")}><Sparkles size={17} /> Stories</div>
           </div>
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
-            <span
-              style={{ color: "#d9d0e6", fontSize: 13.5, cursor: "pointer" }}
+
+          <div style={{ borderTop: `1px solid ${PURPLE_BORDER}`, paddingTop: 14, marginTop: 10 }}>
+            <div
+              style={{ color: "#98A2B8", fontSize: 12.5, cursor: "pointer", marginBottom: 10 }}
               onClick={() => {
                 const val = prompt("Telefon raqamingizni kiriting:", sellerPhone);
                 if (val !== null) savePhone(val.trim());
               }}
               title="Telefon raqamingizni kiritish uchun bosing"
             >
-              Xodim: <b style={{ color: "#fff" }}>{sellerName}</b>{sellerPhone ? "" : " (telefon kiritilmagan - bosing)"}
-            </span>
-            <button className="mb-btn mb-btn-ghost" style={{ color: "#fff", borderColor: PURPLE_BORDER, display: "flex", alignItems: "center", gap: 6, padding: "8px 12px" }} onClick={doLogout}><LogOut size={15} /> Chiqish</button>
+              <b style={{ color: "#fff" }}>{sellerName}</b>{sellerPhone ? "" : " (tel kiritilmagan)"}
+            </div>
+            <button className="mb-btn mb-btn-ghost" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={doLogout}><LogOut size={15} /> Chiqish</button>
           </div>
         </div>
 
+        <div style={{ flex: 1, overflowY: "auto" }}>
         <div style={{ padding: 20, maxWidth: 1400, margin: "0 auto" }}>
           {section === "orders" && (
             <div className="mb-card">
               <div style={{ fontWeight: 700, marginBottom: 14 }}>Mijozlardan kelgan buyurtmalar</div>
-              {ordersLoading ? <div style={{ color: "#8a887e" }}>Yuklanmoqda...</div> : orders.length === 0 ? (
-                <div style={{ textAlign: "center", color: "#8a887e", padding: "30px 0" }}>Hozircha yangi buyurtma yo'q.</div>
+              {ordersLoading ? <div style={{ color: "#98A2B8" }}>Yuklanmoqda...</div> : orders.length === 0 ? (
+                <div style={{ textAlign: "center", color: "#98A2B8", padding: "30px 0" }}>Hozircha yangi buyurtma yo'q.</div>
               ) : (
                 <div style={{ display: "grid", gap: 12 }}>
                   {orders.map((o) => (
-                    <div key={o.id} style={{ border: "1px solid #efeee7", borderRadius: 10, padding: 14 }}>
+                    <div key={o.id} style={{ border: "1px solid #232C42", borderRadius: 10, padding: 14 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                         <div>
-                          <div style={{ fontWeight: 700 }}>{o.customer?.name || "Noma'lum mijoz"} <span style={{ color: "#8a887e", fontFamily: "monospace", fontWeight: 400, fontSize: 12.5 }}>({o.customer_id})</span></div>
-                          <div style={{ fontSize: 12.5, color: "#8a887e" }}>{formatDate(o.created_at)}{o.order_no ? ` \u2022 #${o.order_no}` : ""}</div>
+                          <div style={{ fontWeight: 700 }}>{o.customer?.name || "Noma'lum mijoz"} <span style={{ color: "#98A2B8", fontFamily: "monospace", fontWeight: 400, fontSize: 12.5 }}>({o.customer_id})</span></div>
+                          <div style={{ fontSize: 12.5, color: "#98A2B8" }}>{formatDate(o.created_at)}{o.order_no ? ` \u2022 #${o.order_no}` : ""}</div>
                         </div>
                         <div style={{ fontWeight: 700 }}>
                           Jami: {fmt(o.buyurtma_items.reduce((s, it) => s + it.price * it.qty, 0))}
@@ -383,7 +406,7 @@ export default function App() {
                         <button className="mb-btn mb-btn-danger" onClick={() => cancelOrder(o)}>Bekor qilish</button>
                       </div>
                       {(o.status === "yigilmoqda" || o.status === "yolda") && (
-                        <div style={{ fontSize: 11.5, color: "#8a887e", marginTop: 8, fontStyle: "italic" }}>
+                        <div style={{ fontSize: 11.5, color: "#98A2B8", marginTop: 8, fontStyle: "italic" }}>
                           {o.status === "yigilmoqda" ? "Yig'uv stansiyasida skanerlanishi kutilmoqda." : "Haydovchi yolda - Yetkazildi tugmasi haydovchi ilovasida bosiladi."}
                         </div>
                       )}
@@ -417,7 +440,7 @@ export default function App() {
                     </>
                   ) : (
                     <div>
-                      <div style={{ color: "#8a887e", fontSize: 13, marginBottom: 10 }}>Yangi mijoz ID: <b style={{ color: "#161615", fontFamily: "monospace", fontSize: 15 }}>{newCustomerForm.previewId}</b></div>
+                      <div style={{ color: "#98A2B8", fontSize: 13, marginBottom: 10 }}>Yangi mijoz ID: <b style={{ color: "#E7EAF0", fontFamily: "monospace", fontSize: 15 }}>{newCustomerForm.previewId}</b></div>
                       <div style={{ display: "grid", gap: 10 }}>
                         <input className="mb-input" placeholder="Mijoz ismi (to'liq)" value={newCustomerForm.name} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, name: e.target.value })} />
                         <input className="mb-input" placeholder="Viloyati / hududi" value={newCustomerForm.viloyat} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, viloyat: e.target.value })} />
@@ -435,9 +458,9 @@ export default function App() {
                 <>
                   <div className="mb-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
                     <div>
-                      <div style={{ fontSize: 12, color: "#8a887e", fontWeight: 700 }}>MIJOZ ID: {saleCustomer.id}</div>
+                      <div style={{ fontSize: 12, color: "#98A2B8", fontWeight: 700 }}>MIJOZ ID: {saleCustomer.id}</div>
                       <div style={{ fontSize: 17, fontWeight: 700, margin: "3px 0" }}>{saleCustomer.name}</div>
-                      <div style={{ fontSize: 13.5, color: "#666" }}>{saleCustomer.viloyat}{saleCustomer.manzil ? `, ${saleCustomer.manzil}` : ""}</div>
+                      <div style={{ fontSize: 13.5, color: "#98A2B8" }}>{saleCustomer.viloyat}{saleCustomer.manzil ? `, ${saleCustomer.manzil}` : ""}</div>
                       {saleCustomer.debt > 0 && <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: "#fbe4e2", color: "#a1281f", fontSize: 12.5, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}><Wallet size={13} /> Joriy qarz: {fmt(saleCustomer.debt)}</div>}
                     </div>
                     <button className="mb-btn mb-btn-ghost" onClick={changeCustomer}><ChevronLeft size={14} style={{ verticalAlign: -2 }} /> Boshqa mijoz</button>
@@ -449,10 +472,10 @@ export default function App() {
                     {saleSearchResults.length > 0 && (
                       <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
                         {saleSearchResults.map((p) => (
-                          <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", background: "#f7f6f1", borderRadius: 8, gap: 8, flexWrap: "wrap" }}>
+                          <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", background: "#1B2740", borderRadius: 8, gap: 8, flexWrap: "wrap" }}>
                             <div style={{ minWidth: 140 }}>
                               <div style={{ fontWeight: 600, fontSize: 13.5 }}>{p.name}</div>
-                              <div style={{ fontSize: 12, color: "#8a887e" }}>{fmt(p.price)} \u2022 omborda: {p.qty}</div>
+                              <div style={{ fontSize: 12, color: "#98A2B8" }}>{fmt(p.price)} \u2022 omborda: {p.qty}</div>
                             </div>
                             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                               <input type="number" min="1" max={p.qty} className="mb-input" style={{ width: 64, padding: "6px 8px" }} value={qtyDraft[p.id] ?? 1} onChange={(e) => setQtyDraft((d) => ({ ...d, [p.id]: e.target.value }))} />
@@ -500,10 +523,10 @@ export default function App() {
               <input className="mb-input" style={{ maxWidth: 360 }} placeholder="ID yoki ism bo'yicha qidirish..." value={custSearch} onChange={(e) => setCustSearch(e.target.value)} />
               {!selectedCustomer ? (
                 <div style={{ display: "grid", gap: 8 }}>
-                  {customerResults.length === 0 && <div style={{ color: "#8a887e", padding: "20px 0", textAlign: "center" }}>Mijozlar topilmadi.</div>}
+                  {customerResults.length === 0 && <div style={{ color: "#98A2B8", padding: "20px 0", textAlign: "center" }}>Mijozlar topilmadi.</div>}
                   {customerResults.map((c) => (
                     <div key={c.id} className="mb-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", padding: 14 }} onClick={() => openCustomer(c)}>
-                      <div><div style={{ fontWeight: 700 }}>{c.name}</div><div style={{ fontSize: 12.5, color: "#8a887e", fontFamily: "monospace" }}>ID: {c.id} \u2022 {c.viloyat}</div></div>
+                      <div><div style={{ fontWeight: 700 }}>{c.name}</div><div style={{ fontSize: 12.5, color: "#98A2B8", fontFamily: "monospace" }}>ID: {c.id} \u2022 {c.viloyat}</div></div>
                       {c.debt > 0 && <div style={{ color: "#a1281f", fontWeight: 700, fontSize: 13.5 }}>Qarz: {fmt(c.debt)}</div>}
                     </div>
                   ))}
@@ -511,23 +534,23 @@ export default function App() {
               ) : (
                 <div className="mb-card">
                   <button className="mb-btn mb-btn-ghost" style={{ marginBottom: 14 }} onClick={() => setSelectedCustomer(null)}><ChevronLeft size={14} style={{ verticalAlign: -2 }} /> Orqaga</button>
-                  <div style={{ fontSize: 12, color: "#8a887e", fontWeight: 700 }}>MIJOZ ID: {selectedCustomer.id}</div>
+                  <div style={{ fontSize: 12, color: "#98A2B8", fontWeight: 700 }}>MIJOZ ID: {selectedCustomer.id}</div>
                   <div style={{ fontSize: 19, fontWeight: 700, margin: "4px 0" }}>{selectedCustomer.name}</div>
-                  <div style={{ color: "#666", marginBottom: 12 }}>{selectedCustomer.viloyat}{selectedCustomer.manzil ? `, ${selectedCustomer.manzil}` : ""}</div>
+                  <div style={{ color: "#98A2B8", marginBottom: 12 }}>{selectedCustomer.viloyat}{selectedCustomer.manzil ? `, ${selectedCustomer.manzil}` : ""}</div>
                   <div style={{ display: "flex", gap: 16, marginBottom: 18, flexWrap: "wrap" }}>
-                    <div style={{ background: "#f7f6f1", borderRadius: 10, padding: "10px 16px" }}><div style={{ fontSize: 11.5, color: "#8a887e", fontWeight: 700 }}>JORIY QARZ</div><div style={{ fontSize: 18, fontWeight: 700, color: selectedCustomer.debt > 0 ? "#a1281f" : "#2c7a4b" }}>{fmt(selectedCustomer.debt)}</div></div>
-                    <div style={{ background: "#f7f6f1", borderRadius: 10, padding: "10px 16px" }}><div style={{ fontSize: 11.5, color: "#8a887e", fontWeight: 700 }}>JAMI XARIDLAR</div><div style={{ fontSize: 18, fontWeight: 700 }}>{selectedCustomer.purchases.length}</div></div>
+                    <div style={{ background: "#1B2740", borderRadius: 10, padding: "10px 16px" }}><div style={{ fontSize: 11.5, color: "#98A2B8", fontWeight: 700 }}>JORIY QARZ</div><div style={{ fontSize: 18, fontWeight: 700, color: selectedCustomer.debt > 0 ? "#a1281f" : "#2c7a4b" }}>{fmt(selectedCustomer.debt)}</div></div>
+                    <div style={{ background: "#1B2740", borderRadius: 10, padding: "10px 16px" }}><div style={{ fontSize: 11.5, color: "#98A2B8", fontWeight: 700 }}>JAMI XARIDLAR</div><div style={{ fontSize: 18, fontWeight: 700 }}>{selectedCustomer.purchases.length}</div></div>
                   </div>
                   <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
                     <input type="number" className="mb-input" style={{ maxWidth: 200 }} placeholder="Qarz to'lovi summasi" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
                     <button className="mb-btn mb-btn-primary" onClick={addStandalonePayment}><Check size={14} style={{ verticalAlign: -2 }} /> To'lov qo'shish</button>
                   </div>
                   <div style={{ fontWeight: 700, marginBottom: 8 }}>Xaridlar tarixi</div>
-                  {selectedCustomer.purchases.length === 0 ? <div style={{ color: "#8a887e", fontSize: 13.5 }}>Hali xarid yo'q.</div> : (
+                  {selectedCustomer.purchases.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali xarid yo'q.</div> : (
                     <div style={{ display: "grid", gap: 10 }}>
                       {selectedCustomer.purchases.map((p) => (
-                        <div key={p.id} style={{ border: "1px solid #efeee7", borderRadius: 10, padding: 12 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "#8a887e", marginBottom: 6 }}>
+                        <div key={p.id} style={{ border: "1px solid #232C42", borderRadius: 10, padding: 12 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "#98A2B8", marginBottom: 6 }}>
                             <span>{formatDate(p.created_at)} \u2022 {p.seller_name}</span>
                             <span>Jami: {fmt(p.total)} / To'landi: {fmt(p.paid)}</span>
                           </div>
@@ -543,14 +566,14 @@ export default function App() {
 
           {section === "history" && (
             <div className="mb-card">
-              {historyRows.length === 0 ? <div style={{ textAlign: "center", color: "#8a887e", padding: "30px 0" }}>Hali sotuvlar tarixi yo'q.</div> : (
+              {historyRows.length === 0 ? <div style={{ textAlign: "center", color: "#98A2B8", padding: "30px 0" }}>Hali sotuvlar tarixi yo'q.</div> : (
                 <table className="mb-table">
                   <thead><tr><th>Sana</th><th>Mijoz</th><th>Sotuvchi</th><th>Jami</th><th>To'landi</th></tr></thead>
                   <tbody>
                     {historyRows.map((r) => (
                       <tr key={r.id}>
                         <td style={{ fontSize: 12.5 }}>{formatDate(r.created_at)}</td>
-                        <td>{r.customers?.name} <span style={{ color: "#8a887e", fontFamily: "monospace", fontSize: 11.5 }}>({r.customer_id})</span></td>
+                        <td>{r.customers?.name} <span style={{ color: "#98A2B8", fontFamily: "monospace", fontSize: 11.5 }}>({r.customer_id})</span></td>
                         <td>{r.seller_name}</td><td>{fmt(r.total)}</td>
                         <td style={{ color: r.paid < r.total ? "#a1281f" : "#2c7a4b" }}>{fmt(r.paid)}</td>
                       </tr>
@@ -567,6 +590,8 @@ export default function App() {
           {section === "vazvrat" && <VazvratSection sellerName={sellerName} />}
           {section === "statistika" && <StatistikaSection />}
           {section === "stories" && <StoriesSection />}
+          {section === "xodimlar" && <XodimlarSection />}
+        </div>
         </div>
       </div>
 
@@ -579,7 +604,7 @@ function ReceiptOverlay({ data, onClose }) {
   return (
     <>
       <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 50 }} onClick={onClose}>
-        <div style={{ background: "#fff", borderRadius: 12, maxWidth: 640, width: "100%", maxHeight: "90vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ background: "#141B2E", borderRadius: 12, maxWidth: 640, width: "100%", maxHeight: "90vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: 12, borderBottom: "1px solid #eee" }}>
             <button className="mb-btn mb-btn-primary" onClick={() => window.print()}><Printer size={14} style={{ verticalAlign: -2 }} /> Chop etish</button>
             <button className="mb-btn mb-btn-ghost" onClick={onClose}><X size={16} /></button>
@@ -1347,6 +1372,168 @@ function StoriesSection() {
   );
 }
 
+/* ---------------- XODIMLAR ---------------- */
+function XodimlarSection() {
+  const [sellers, setSellers] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+  const [yiguvchilar, setYiguvchilar] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [role, setRole] = useState("seller");
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [raqam, setRaqam] = useState("");
+  const [formError, setFormError] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createdInfo, setCreatedInfo] = useState(null);
+
+  useEffect(() => { refresh(); }, []);
+  async function refresh() {
+    setLoading(true);
+    const [{ data: s }, { data: d }, { data: y }] = await Promise.all([
+      supabase.from("sellers").select("*").order("name"),
+      supabase.from("drivers").select("*").order("name"),
+      supabase.from("yiguvchilar").select("*").order("name"),
+    ]);
+    setSellers(s || []);
+    setDrivers(d || []);
+    setYiguvchilar(y || []);
+    setLoading(false);
+  }
+
+  function resetForm() {
+    setRole("seller"); setName(""); setUsername(""); setPassword(""); setRaqam("");
+    setFormError(""); setCreatedInfo(null);
+  }
+
+  async function createStaff() {
+    if (!name.trim()) { setFormError("Ism kiriting"); return; }
+    if (role === "yiguvchi" && !raqam.trim()) { setFormError("Raqam (kod) kiriting"); return; }
+    if (role !== "yiguvchi") {
+      if (!username.trim()) { setFormError("Login kiriting"); return; }
+      if (!password || password.length < 6) { setFormError("Parol kamida 6 belgi"); return; }
+    }
+    setCreating(true);
+    setFormError("");
+    try {
+      const sessionRes = await supabase.auth.getSession();
+      const token = sessionRes.data.session ? sessionRes.data.session.access_token : "";
+      const res = await fetch("https://gbtqoqcvcgxueienqusn.supabase.co/functions/v1/create-staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ role, name: name.trim(), username: username.trim(), password, raqam: raqam.trim() }),
+      });
+      const json = await res.json();
+      if (!json.ok) { setFormError(json.error || "Xatolik yuz berdi"); setCreating(false); return; }
+      setCreatedInfo({ role, name: name.trim(), email: json.email, raqam: raqam.trim() });
+      refresh();
+    } catch (e) {
+      setFormError("Tarmoq xatoligi");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div>
+      {!showForm ? (
+        <button className="mb-btn mb-btn-primary" style={{ marginBottom: 16 }} onClick={() => { setShowForm(true); resetForm(); }}>
+          + Yangi xodim qo'shish
+        </button>
+      ) : (
+        <div className="mb-card" style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 700, marginBottom: 12 }}>Yangi xodim</div>
+
+          {createdInfo ? (
+            <div>
+              <div style={{ color: "#2c7a4b", fontWeight: 700, marginBottom: 8 }}>Xodim muvaffaqiyatli qoshildi!</div>
+              <div style={{ fontSize: 13.5, marginBottom: 4 }}>Ism: <b>{createdInfo.name}</b></div>
+              {createdInfo.role === "yiguvchi" ? (
+                <div style={{ fontSize: 13.5, marginBottom: 12 }}>Kod: <b style={{ fontFamily: "monospace" }}>{createdInfo.raqam}</b></div>
+              ) : (
+                <div style={{ fontSize: 13.5, marginBottom: 12 }}>Login: <b style={{ fontFamily: "monospace" }}>{createdInfo.email}</b></div>
+              )}
+              <button className="mb-btn mb-btn-ghost" onClick={() => { setShowForm(false); resetForm(); }}>Yopish</button>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+                {[["seller", "Sotuvchi"], ["driver", "Haydovchi"], ["yiguvchi", "Yiguvchi"]].map(([r, label]) => (
+                  <button key={r} type="button" onClick={() => setRole(r)}
+                    className="mb-btn" style={{ flex: 1, background: role === r ? ORANGE : "#232C42", color: "#fff", fontSize: 13 }}>{label}</button>
+                ))}
+              </div>
+              <input className="mb-input" style={{ marginBottom: 8 }} placeholder="Ismi" value={name} onChange={(e) => setName(e.target.value)} />
+              {role === "yiguvchi" ? (
+                <input className="mb-input" style={{ marginBottom: 8 }} placeholder="Raqam (kod)" value={raqam} onChange={(e) => setRaqam(e.target.value)} />
+              ) : (
+                <>
+                  <input className="mb-input" style={{ marginBottom: 8 }} placeholder="Login (masalan: azizxon)" value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" />
+                  <input className="mb-input" style={{ marginBottom: 8 }} type="password" placeholder="Parol (kamida 6 belgi)" value={password} onChange={(e) => setPassword(e.target.value)} />
+                </>
+              )}
+              {formError && <div style={{ color: "#f0837f", fontSize: 13, marginBottom: 8 }}>{formError}</div>}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="mb-btn mb-btn-primary" disabled={creating} onClick={createStaff}>{creating ? "..." : "Yaratish"}</button>
+                <button className="mb-btn mb-btn-ghost" onClick={() => setShowForm(false)}>Bekor qilish</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ color: "#98A2B8", textAlign: "center", padding: 24 }}>Yuklanmoqda...</div>
+      ) : (
+        <div style={{ display: "grid", gap: 16 }}>
+          <div className="mb-card">
+            <div style={{ fontWeight: 700, marginBottom: 10 }}>Sotuvchilar ({sellers.length})</div>
+            {sellers.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali sotuvchi yoq.</div> : (
+              <div style={{ display: "grid", gap: 8 }}>
+                {sellers.map((s) => (
+                  <div key={s.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
+                    <span>{s.name}</span>
+                    <span style={{ color: "#98A2B8" }}>{s.phone || "tel yoq"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mb-card">
+            <div style={{ fontWeight: 700, marginBottom: 10 }}>Haydovchilar ({drivers.length})</div>
+            {drivers.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali haydovchi yoq.</div> : (
+              <div style={{ display: "grid", gap: 8 }}>
+                {drivers.map((d) => (
+                  <div key={d.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
+                    <span>{d.name}{d.is_admin ? " (admin)" : ""}</span>
+                    <span style={{ color: "#98A2B8" }}>{d.phone || "tel yoq"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mb-card">
+            <div style={{ fontWeight: 700, marginBottom: 10 }}>Yig'uvchilar ({yiguvchilar.length})</div>
+            {yiguvchilar.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali yiguvchi yoq.</div> : (
+              <div style={{ display: "grid", gap: 8 }}>
+                {yiguvchilar.map((y) => (
+                  <div key={y.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
+                    <span>{y.name}</span>
+                    <span style={{ color: "#98A2B8", fontFamily: "monospace" }}>Kod: {y.raqam}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatCard({ label, value, color }) {
   return (
     <div className="ob-card">
@@ -1358,22 +1545,32 @@ function StatCard({ label, value, color }) {
 
 const allCss = `
   * { box-sizing: border-box; }
+  body { background: #0B1220; }
   .mb-btn, .ob-btn { cursor:pointer; border:none; border-radius:8px; font-weight:700; font-size:14px; padding:10px 16px; }
   .mb-btn-primary, .ob-btn-primary { background:${ORANGE}; color:#fff; }
   .mb-btn-primary:hover, .ob-btn-primary:hover { background:${ORANGE_DARK}; }
-  .mb-btn-primary:disabled, .ob-btn-primary:disabled { background:#d7a48c; }
-  .mb-btn-dark, .ob-btn-dark { background:${PURPLE_DARK}; color:#fff; }
-  .mb-btn-ghost, .ob-btn-ghost { background:transparent; border:1.5px solid #d8d6cc; }
-  .mb-btn-ghost:hover, .ob-btn-ghost:hover { background:#eae8df; }
-  .mb-btn-danger, .ob-btn-danger { background:#fbe4e2; color:#a1281f; }
-  .mb-input, .ob-input { width:100%; padding:10px 12px; border:1.5px solid #d8d6cc; border-radius:8px; font-size:14px; }
-  .ob-input:focus { outline:none; border-color:${ORANGE}; }
-  .mb-card, .ob-card { background:#fff; border-radius:14px; padding:20px; border:1px solid #e7e5db; }
-  .mb-table { width:100%; border-collapse:collapse; font-size:13.5px; }
-  .mb-table th { text-align:left; padding:9px 10px; color:#8a887e; font-weight:700; font-size:11.5px; text-transform:uppercase; border-bottom:1.5px solid #e7e5db; }
-  .mb-table td { padding:10px; border-bottom:1px solid #efeee7; vertical-align:middle; }
-  .mb-tab { display:flex; align-items:center; gap:7px; padding:12px 18px; cursor:pointer; color:#c9c7bd; font-weight:700; font-size:14px; border-bottom:3px solid transparent; white-space:nowrap; }
+  .mb-btn-primary:disabled, .ob-btn-primary:disabled { background:#5a4238; color:#9a8478; }
+  .mb-btn-dark, .ob-btn-dark { background:#232C42; color:#fff; }
+  .mb-btn-dark:hover, .ob-btn-dark:hover { background:#2A3652; }
+  .mb-btn-ghost, .ob-btn-ghost { background:transparent; border:1.5px solid #2A3652; color:#E7EAF0; }
+  .mb-btn-ghost:hover, .ob-btn-ghost:hover { background:#1B2740; }
+  .mb-btn-danger, .ob-btn-danger { background:#3A2020; color:#f0837f; }
+  .mb-btn-danger:hover, .ob-btn-danger:hover { background:#4A2828; }
+  .mb-input, .ob-input { width:100%; padding:10px 12px; border:1.5px solid #2A3652; border-radius:8px; font-size:14px; background:#0F1729; color:#E7EAF0; }
+  .mb-input::placeholder, .ob-input::placeholder { color:#5A6580; }
+  .mb-input:focus, .ob-input:focus { outline:none; border-color:${ORANGE}; }
+  .mb-card, .ob-card { background:#141B2E; border-radius:14px; padding:20px; border:1px solid #232C42; color:#E7EAF0; }
+  .mb-table { width:100%; border-collapse:collapse; font-size:13.5px; color:#E7EAF0; }
+  .mb-table th { text-align:left; padding:9px 10px; color:#98A2B8; font-weight:700; font-size:11.5px; text-transform:uppercase; border-bottom:1.5px solid #232C42; }
+  .mb-table td { padding:10px; border-bottom:1px solid #1B2740; vertical-align:middle; }
+  .mb-tab { display:flex; align-items:center; gap:7px; padding:12px 18px; cursor:pointer; color:#98A2B8; font-weight:700; font-size:14px; border-bottom:3px solid transparent; white-space:nowrap; }
   .mb-tab.active { color:#fff; border-bottom-color:${ORANGE}; }
+  .sidebar-item { display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:10px; cursor:pointer; color:#98A2B8; font-weight:600; font-size:13.5px; }
+  .sidebar-item:hover { background:#1B2740; }
+  .sidebar-item.active { background:${ORANGE}; color:#fff; }
+  .sidebar-sub { display:flex; align-items:center; gap:10px; padding:9px 14px 9px 40px; border-radius:8px; cursor:pointer; color:#8492AA; font-weight:600; font-size:13px; }
+  .sidebar-sub:hover { background:#1B2740; color:#E7EAF0; }
+  .sidebar-sub.active { background:#232C42; color:#fff; }
   .print-only { display:none; }
   @media print { .no-print { display:none !important; } .print-only { display:block !important; } }
 `;
