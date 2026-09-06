@@ -75,7 +75,6 @@ export default function App() {
   const [saleSearch, setSaleSearch] = useState("");
   const [qtyDraft, setQtyDraft] = useState({});
   const [paymentInput, setPaymentInput] = useState("");
-  const [convertingOrderId, setConvertingOrderId] = useState(null);
 
   const [custSearch, setCustSearch] = useState("");
   const [customerResults, setCustomerResults] = useState([]);
@@ -140,17 +139,22 @@ export default function App() {
   async function setOrderStatus(order, status) {
     const payload = { status };
     if (status === "qabul_qilindi") payload.seller_name = sellerName;
-    await supabase.from("buyurtmalar").update(payload).eq("id", order.id);
+    const { error } = await supabase.from("buyurtmalar").update(payload).eq("id", order.id);
+    if (error) { alert("Xatolik: " + error.message); return; }
     refreshOrders();
   }
 
-  function convertOrderToSale(order) {
-    if (!order.customer) return;
-    setConvertingOrderId(order.id);
-    setSaleCustomer(order.customer);
-    setCart(order.buyurtma_items.map((it) => ({ productId: it.product_id, name: it.product_name, price: it.price, qty: it.qty })));
-    setSection("sale");
+  function acceptAndPrint(order) {
+    setOrderStatus(order, "qabul_qilindi");
+    const items = order.buyurtma_items.map((it) => ({ name: it.product_name, price: it.price, qty: it.qty }));
+    const total = items.reduce((s, it) => s + it.price * it.qty, 0);
+    setReceipt({
+      customer: order.customer,
+      purchase: { total, paid: 0, items, date: new Date().toISOString() },
+      seller: sellerName,
+    });
   }
+
   async function cancelOrder(order) {
     if (!confirm("Buyurtmani bekor qilishga ishonchingiz komilmi?")) return;
     await supabase.from("buyurtmalar").update({ status: "bekor_qilindi" }).eq("id", order.id);
@@ -197,7 +201,7 @@ export default function App() {
     if (error) { setSaleError("Xatolik: " + error.message); return; }
     setSaleCustomer(data); setNewCustomerForm(null); setSaleError("");
   }
-  function changeCustomer() { setSaleCustomer(null); setCustomerIdInput(""); setCart([]); setPaymentInput(""); setSaleError(""); setConvertingOrderId(null); }
+  function changeCustomer() { setSaleCustomer(null); setCustomerIdInput(""); setCart([]); setPaymentInput(""); setSaleError(""); }
 
   const saleSearchResults = useMemo(() => {
     const q = saleSearch.trim().toLowerCase();
@@ -253,12 +257,6 @@ export default function App() {
     }
 
     const { data: updatedCustomer } = await supabase.from("customers").update({ debt: newDebt }).eq("id", saleCustomer.id).select("*").single();
-
-    if (convertingOrderId) {
-      await supabase.from("buyurtmalar").update({ status: "yakunlandi" }).eq("id", convertingOrderId);
-      setConvertingOrderId(null);
-      refreshOrders();
-    }
 
     setBusy(false);
     setReceipt({ customer: updatedCustomer, purchase: { ...sale, items: cart, date: sale.created_at }, seller: sellerName });
@@ -400,9 +398,8 @@ export default function App() {
                         Holat: {ORDER_STATUS_LABELS[o.status] || o.status}
                       </div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {o.status === "yangi" && <button className="mb-btn mb-btn-primary" onClick={() => setOrderStatus(o, "qabul_qilindi")}>Qabul qilish</button>}
+                        {o.status === "yangi" && <button className="mb-btn mb-btn-primary" onClick={() => acceptAndPrint(o)}>Qabul qilish va chop etish</button>}
                         {o.status === "qabul_qilindi" && <button className="mb-btn mb-btn-primary" onClick={() => setOrderStatus(o, "yigilmoqda")}>Yig'ilmoqda deb belgilash</button>}
-                        <button className="mb-btn mb-btn-dark" onClick={() => convertOrderToSale(o)}>Sotuvga aylantirish</button>
                         <button className="mb-btn mb-btn-danger" onClick={() => cancelOrder(o)}>Bekor qilish</button>
                       </div>
                       {(o.status === "yigilmoqda" || o.status === "yolda") && (
@@ -419,11 +416,6 @@ export default function App() {
 
           {section === "sale" && (
             <div style={{ display: "grid", gap: 16 }}>
-              {convertingOrderId && (
-                <div style={{ background: "#fff4e0", border: "1px solid #f0c674", borderRadius: 10, padding: 12, fontSize: 13.5, color: "#7a5a00" }}>
-                  Buyurtmadan sotuvga aylantirilmoqda \u2014 yakunlangach buyurtma avtomatik yopiladi.
-                </div>
-              )}
               {!saleCustomer ? (
                 <div className="mb-card">
                   <div style={{ fontWeight: 700, marginBottom: 12 }}>1. Mijozni tanlang</div>
