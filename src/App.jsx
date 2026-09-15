@@ -1646,11 +1646,32 @@ function FeaturedProductsSection() {
   }, [products, search]);
 
   const featuredList = useMemo(() => products.filter((p) => p.featured), [products]);
+  const featuredByGroup = useMemo(() => {
+    const map = {};
+    FEATURED_GROUPS.forEach((g) => { map[g.key] = []; });
+    featuredList.forEach((p) => {
+      const key = p.featured_group || FEATURED_GROUPS[0].key;
+      if (!map[key]) map[key] = [];
+      map[key].push(p);
+    });
+    Object.keys(map).forEach((key) => {
+      map[key].sort((a, b) => (a.featured_order ?? 999) - (b.featured_order ?? 999));
+    });
+    return map;
+  }, [featuredList]);
 
   async function toggleFeatured(p) {
     setSavingId(p.id);
     const newFeatured = !p.featured;
-    const payload = { featured: newFeatured, featured_group: newFeatured ? (p.featured_group || FEATURED_GROUPS[0].key) : null };
+    let payload;
+    if (newFeatured) {
+      const groupKey = p.featured_group || FEATURED_GROUPS[0].key;
+      const existingInGroup = featuredByGroup[groupKey] || [];
+      const nextOrder = existingInGroup.length > 0 ? Math.max(...existingInGroup.map((x) => x.featured_order ?? 0)) + 1 : 1;
+      payload = { featured: true, featured_group: groupKey, featured_order: nextOrder };
+    } else {
+      payload = { featured: false, featured_group: null, featured_order: null };
+    }
     const { error } = await supabase.from("products").update(payload).eq("id", p.id);
     if (error) { alert("Xatolik: " + error.message); setSavingId(null); return; }
     await refresh();
@@ -1659,8 +1680,24 @@ function FeaturedProductsSection() {
 
   async function setGroup(p, groupKey) {
     setSavingId(p.id);
-    const { error } = await supabase.from("products").update({ featured_group: groupKey }).eq("id", p.id);
+    const existingInGroup = featuredByGroup[groupKey] || [];
+    const nextOrder = existingInGroup.length > 0 ? Math.max(...existingInGroup.map((x) => x.featured_order ?? 0)) + 1 : 1;
+    const { error } = await supabase.from("products").update({ featured_group: groupKey, featured_order: nextOrder }).eq("id", p.id);
     if (error) { alert("Xatolik: " + error.message); setSavingId(null); return; }
+    await refresh();
+    setSavingId(null);
+  }
+
+  async function moveInGroup(groupKey, index, direction) {
+    const list = featuredByGroup[groupKey] || [];
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= list.length) return;
+    const a = list[index], b = list[targetIndex];
+    setSavingId(a.id);
+    await Promise.all([
+      supabase.from("products").update({ featured_order: b.featured_order ?? targetIndex + 1 }).eq("id", a.id),
+      supabase.from("products").update({ featured_order: a.featured_order ?? index + 1 }).eq("id", b.id),
+    ]);
     await refresh();
     setSavingId(null);
   }
@@ -1674,6 +1711,30 @@ function FeaturedProductsSection() {
         </div>
         <input className="ob-input" placeholder="Mahsulot qidirish..." value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
+
+      {featuredList.length > 0 && FEATURED_GROUPS.map((g) => {
+        const list = featuredByGroup[g.key] || [];
+        if (list.length === 0) return null;
+        return (
+          <div key={g.key} className="ob-card">
+            <div style={{ fontWeight: 700, marginBottom: 10 }}>{g.label} — tartib</div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {list.map((p, i) => (
+                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "#1B2740", borderRadius: 8 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 13, background: ORANGE, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>
+                    {i + 1}
+                  </div>
+                  <div style={{ flex: 1, fontSize: 13.5, fontWeight: 600 }}>{p.name}</div>
+                  <button disabled={i === 0 || savingId === p.id} onClick={() => moveInGroup(g.key, i, -1)}
+                    className="ob-btn ob-btn-ghost" style={{ padding: "4px 10px", fontSize: 14 }}>{"↑"}</button>
+                  <button disabled={i === list.length - 1 || savingId === p.id} onClick={() => moveInGroup(g.key, i, 1)}
+                    className="ob-btn ob-btn-ghost" style={{ padding: "4px 10px", fontSize: 14 }}>{"↓"}</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
 
       <div style={{ display: "grid", gap: 8 }}>
         {filtered.length === 0 ? (
