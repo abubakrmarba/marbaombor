@@ -8,6 +8,13 @@ import {
 import { supabase } from "./supabaseClient";
 
 const SELLER_NAMES = ["Azizxon", "Doniyorjon", "Jahongir", "Javohirbek", "Hamidjon", "Jamshidbek", "Xislatbek", "Mubashirxon", "Jahongiroldi"];
+const FEATURED_GROUPS = [
+  { key: "yangiliklar", label: "Yangiliklar" },
+  { key: "eng_kop_soralgan", label: "Eng ko'p so'ralgan" },
+  { key: "mavsumiy", label: "Mavsumiy" },
+  { key: "garantiyalik", label: "Garantiyalik" },
+];
+const FEATURED_GROUP_LIMIT = 5;
 const ORANGE = "#E9642B";
 const ORANGE_DARK = "#C24F1F";
 const PURPLE_DARK = "#0B1220";
@@ -719,6 +726,13 @@ function OmborSection() {
     });
   }, [products, search]);
 
+  const featuredCounts = useMemo(() => {
+    const counts = {};
+    FEATURED_GROUPS.forEach((g) => { counts[g.key] = 0; });
+    products.forEach((p) => { if (p.featured && p.featured_group && counts[p.featured_group] !== undefined) counts[p.featured_group]++; });
+    return counts;
+  }, [products]);
+
   async function uploadImage(file) {
     const ext = file.name.split(".").pop();
     const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -737,11 +751,24 @@ function OmborSection() {
 
   async function saveForm() {
     if (!form.name.trim()) return;
+    if (form.featured) {
+      if (!form.featured_group) { alert("Market'da ko'rsatish uchun guruhni tanlang."); return; }
+      const isOwnGroup = form.id && form._originalFeaturedGroup === form.featured_group;
+      const effectiveCount = (featuredCounts[form.featured_group] || 0) - (isOwnGroup ? 1 : 0);
+      if (effectiveCount >= FEATURED_GROUP_LIMIT) {
+        alert(`"${FEATURED_GROUPS.find((g) => g.key === form.featured_group)?.label}" guruhida allaqachon ${FEATURED_GROUP_LIMIT}ta mahsulot bor.`);
+        return;
+      }
+    }
     setUploading(true);
     let imageUrl = form.image_url || null;
     try { if (form.imageFile) imageUrl = await uploadImage(form.imageFile); }
     catch (e) { alert("Rasm yuklashda xatolik: " + e.message); setUploading(false); return; }
-    const payload = { name: form.name.trim(), price: Number(form.price) || 0, cost_price: Number(form.cost_price) || 0, qty: Number(form.qty) || 0, image_url: imageUrl, birlik: form.birlik || "dona" };
+    const payload = {
+      name: form.name.trim(), price: Number(form.price) || 0, cost_price: Number(form.cost_price) || 0, qty: Number(form.qty) || 0,
+      image_url: imageUrl, birlik: form.birlik || "dona",
+      featured: !!form.featured, featured_group: form.featured ? form.featured_group : null,
+    };
     if (form.id) await supabase.from("products").update(payload).eq("id", form.id);
     else await supabase.from("products").insert(payload);
     setUploading(false); setForm(null); refresh();
@@ -759,13 +786,18 @@ function OmborSection() {
           <Search size={16} style={{ position: "absolute", left: 12, top: 12, color: "#8a887e" }} />
           <input className="ob-input" style={{ paddingLeft: 36 }} placeholder="Nomini yozing (masalan: fil → filtr topiladi)" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <button className="ob-btn ob-btn-primary" onClick={() => setForm({ name: "", price: "", cost_price: "", qty: "", image_url: null, imageFile: null, birlik: "dona" })}>
+        <button className="ob-btn ob-btn-primary" onClick={() => setForm({ name: "", price: "", cost_price: "", qty: "", image_url: null, imageFile: null, birlik: "dona", featured: false, featured_group: null, _originalFeaturedGroup: null })}>
           <Plus size={14} style={{ verticalAlign: -2 }} /> Yangi tovar
         </button>
       </div>
 
+      <div style={{ fontSize: 12.5, color: "#8a887e", marginBottom: 14 }}>
+        Market'da ko'rsatiladigan mahsulotlar: {Object.values(featuredCounts).reduce((s, n) => s + n, 0)}/20
+        {" "}({FEATURED_GROUPS.map((g) => `${g.label}: ${featuredCounts[g.key]}/5`).join(" • ")})
+      </div>
+
       {form && (
-        <ProductForm form={form} setForm={setForm} uploading={uploading} onSave={saveForm} onCancel={() => setForm(null)} fileInputRef={fileInputRef} />
+        <ProductForm form={form} setForm={setForm} uploading={uploading} onSave={saveForm} onCancel={() => setForm(null)} fileInputRef={fileInputRef} featuredCounts={featuredCounts} />
       )}
 
       <div style={{ display: "grid", gap: 10 }}>
@@ -773,7 +805,7 @@ function OmborSection() {
           <EmptyState text="Hech narsa topilmadi." />
         ) : filtered.map((p) => (
           <ProductRow key={p.id} p={p}
-            onEdit={() => setForm({ id: p.id, name: p.name, price: p.price, cost_price: p.cost_price, qty: p.qty, image_url: p.image_url, imageFile: null, birlik: p.birlik || "dona" })}
+            onEdit={() => setForm({ id: p.id, name: p.name, price: p.price, cost_price: p.cost_price, qty: p.qty, image_url: p.image_url, imageFile: null, birlik: p.birlik || "dona", featured: !!p.featured, featured_group: p.featured_group || null, _originalFeaturedGroup: p.featured_group || null })}
             onDelete={() => deleteItem(p.id)} />
         ))}
       </div>
@@ -781,7 +813,7 @@ function OmborSection() {
   );
 }
 
-function ProductForm({ form, setForm, uploading, onSave, onCancel, fileInputRef }) {
+function ProductForm({ form, setForm, uploading, onSave, onCancel, fileInputRef, featuredCounts }) {
   return (
     <div className="ob-card" style={{ marginBottom: 16 }}>
       <div style={{ fontWeight: 700, marginBottom: 12 }}>{form.id ? "Tahrirlash" : "Yangi tovar kiritish"}</div>
@@ -817,6 +849,35 @@ function ProductForm({ form, setForm, uploading, onSave, onCancel, fileInputRef 
           </div>
         </div>
       </div>
+
+      <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #eee" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontWeight: 600, fontSize: 13.5 }}>
+          <input type="checkbox" checked={!!form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked, featured_group: e.target.checked ? form.featured_group : null })} />
+          Market ilovasida ko'rsatish
+        </label>
+        {form.featured && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+            {FEATURED_GROUPS.map((g) => {
+              const isOwnGroup = form._originalFeaturedGroup === g.key;
+              const count = (featuredCounts[g.key] || 0) - (isOwnGroup ? 1 : 0);
+              const full = count >= FEATURED_GROUP_LIMIT;
+              const selected = form.featured_group === g.key;
+              return (
+                <button key={g.key} type="button" disabled={full && !selected}
+                  onClick={() => setForm({ ...form, featured_group: g.key })}
+                  className="ob-btn" style={{
+                    padding: "8px 10px", fontSize: 12.5,
+                    background: selected ? ORANGE : "#f7f6f1", color: selected ? "#fff" : full ? "#c0392b" : "#161615",
+                    opacity: full && !selected ? 0.6 : 1,
+                  }}>
+                  {g.label} ({count}/{FEATURED_GROUP_LIMIT})
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
         <button className="ob-btn ob-btn-primary" disabled={uploading || !form.name.trim()} onClick={onSave}>{uploading ? "Yuklanmoqda..." : "Saqlash"}</button>
         <button className="ob-btn ob-btn-ghost" onClick={onCancel}>Bekor qilish</button>
@@ -832,7 +893,14 @@ function ProductRow({ p, onEdit, onDelete, extra }) {
         {p.image_url ? <img src={p.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <ImageIcon size={20} color="#c9c7bd" />}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: 14.5 }}>{p.name}</div>
+        <div style={{ fontWeight: 700, fontSize: 14.5, display: "flex", alignItems: "center", gap: 6 }}>
+          {p.name}
+          {p.featured && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10.5, fontWeight: 700, color: ORANGE, background: "#FCEBE1", borderRadius: 6, padding: "2px 6px" }}>
+              <Sparkles size={10} /> {FEATURED_GROUPS.find((g) => g.key === p.featured_group)?.label || "Market"}
+            </span>
+          )}
+        </div>
         <div style={{ fontSize: 12.5, color: "#8a887e" }}>
           Kirim: {fmt(p.cost_price)} • Sotuv: {fmt(p.price)} • Miqdor: <span style={{ color: p.qty <= 0 ? "#c0392b" : "inherit", fontWeight: p.qty <= 0 ? 700 : 400 }}>{p.qty} {p.birlik === "komplekt" ? "komplekt" : "dona"}</span>
         </div>
