@@ -14,17 +14,11 @@ const FEATURED_GROUPS = [
   { key: "mavsumiy", label: "Mavsumiy" },
   { key: "garantiyalik", label: "Garantiyalik" },
 ];
-const FEATURED_GROUP_LIMIT = 5;
 const ORANGE = "#E9642B";
 const ORANGE_DARK = "#C24F1F";
 const PURPLE_DARK = "#0B1220";
 const PURPLE = "#141B2E";
 const PURPLE_BORDER = "#232C42";
-const DARK_TEXT = "#E7EAF0";
-const DARK_MUTED = "#98A2B8";
-const DARK_HILITE = "#1B2740";
-const DARK_INPUT_BORDER = "#2A3652";
-const DARK_ROW_BORDER = "#232C42";
 
 function fmt(n) { return "$" + (Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
 function formatDate(iso) {
@@ -332,7 +326,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", minHeight: "100vh", background: PURPLE, color: "#E7EAF0" }}>
+    <div style={{ fontFamily: "system-ui, sans-serif", minHeight: "100vh", background: PURPLE, color: "#161615" }}>
       <style>{allCss}</style>
       <div className="no-print" style={{ display: "flex", minHeight: "100vh" }}>
         <div style={{ width: 230, background: "#0B1220", borderRight: `1px solid ${PURPLE_BORDER}`, display: "flex", flexDirection: "column", padding: "20px 12px", flexShrink: 0 }}>
@@ -368,6 +362,7 @@ export default function App() {
             )}
 
             <div className={`sidebar-item ${section === "stories" ? "active" : ""}`} onClick={() => setSection("stories")}><Sparkles size={17} /> Stories</div>
+            <div className={`sidebar-item ${section === "featured" ? "active" : ""}`} onClick={() => setSection("featured")}><Package size={17} /> Market tovarlar</div>
           </div>
 
           <div style={{ borderTop: `1px solid ${PURPLE_BORDER}`, paddingTop: 14, marginTop: 10 }}>
@@ -430,7 +425,7 @@ export default function App() {
                       <div style={{ fontSize: 12, marginBottom: 4, color: "#C7CDDA" }}>{o.buyurtma_items.map((it) => `${it.product_name} x${it.qty}`).join(", ")}</div>
                       {(o.packed_by || o.driver_name) && (
                         <div style={{ fontSize: 11.5, color: "#2C6FA6", marginBottom: 6 }}>
-                          {o.packed_by ? "\uD83D\uDCE6 " + o.packed_by : ""}{o.packed_by && o.driver_name ? " \u2022 " : ""}{o.driver_name ? "\uD83D\uDE97 " + o.driver_name : ""}
+                          {o.packed_by ? "\u{1F4E6} " + o.packed_by : ""}{o.packed_by && o.driver_name ? " \u2022 " : ""}{o.driver_name ? "\u{1F697} " + o.driver_name : ""}
                         </div>
                       )}
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -462,7 +457,7 @@ export default function App() {
                     </>
                   ) : (
                     <div>
-                      <div style={{ color: "#98A2B8", fontSize: 13, marginBottom: 10 }}>Yangi mijoz ID: <b style={{ color: "#E7EAF0", fontFamily: "monospace", fontSize: 15 }}>{newCustomerForm.previewId}</b></div>
+                      <div style={{ color: "#98A2B8", fontSize: 13, marginBottom: 10 }}>Yangi mijoz ID: <b style={{ color: "#fff", fontFamily: "monospace", fontSize: 15 }}>{newCustomerForm.previewId}</b></div>
                       <div style={{ display: "grid", gap: 10 }}>
                         <input className="mb-input" placeholder="Mijoz ismi (to'liq)" value={newCustomerForm.name} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, name: e.target.value })} />
                         <input className="mb-input" placeholder="Viloyati / hududi" value={newCustomerForm.viloyat} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, viloyat: e.target.value })} />
@@ -483,7 +478,7 @@ export default function App() {
                       <div style={{ fontSize: 12, color: "#98A2B8", fontWeight: 700 }}>MIJOZ ID: {saleCustomer.id}</div>
                       <div style={{ fontSize: 17, fontWeight: 700, margin: "3px 0" }}>{saleCustomer.name}</div>
                       <div style={{ fontSize: 13.5, color: "#98A2B8" }}>{saleCustomer.viloyat}{saleCustomer.manzil ? `, ${saleCustomer.manzil}` : ""}</div>
-                      {saleCustomer.debt > 0 && <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: "#fbe4e2", color: "#a1281f", fontSize: 12.5, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}><Wallet size={13} /> Joriy qarz: {fmt(saleCustomer.debt)}</div>}
+                      {saleCustomer.debt > 0 && <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, background: "#3A2020", color: "#f0837f", fontSize: 12.5, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}><Wallet size={13} /> Joriy qarz: {fmt(saleCustomer.debt)}</div>}
                     </div>
                     <button className="mb-btn mb-btn-ghost" onClick={changeCustomer}><ChevronLeft size={14} style={{ verticalAlign: -2 }} /> Boshqa mijoz</button>
                   </div>
@@ -530,7 +525,7 @@ export default function App() {
                         <input type="number" className="mb-input" style={{ maxWidth: 200 }} placeholder="To'langan summa" value={paymentInput} onChange={(e) => setPaymentInput(e.target.value)} />
                         <button className="mb-btn mb-btn-ghost" onClick={() => setPaymentInput(String(cartTotal))}>To'liq to'lash</button>
                       </div>
-                      <div style={{ fontSize: 13.5, color: debtPreview > 0 ? "#a1281f" : "#2c7a4b", fontWeight: 600, marginBottom: 14 }}>{debtPreview > 0 ? `Yangi qarz bo'ladi: ${fmt(debtPreview)}` : "Qarz qolmaydi"}</div>
+                      <div style={{ fontSize: 13.5, color: debtPreview > 0 ? "#f0837f" : "#2c7a4b", fontWeight: 600, marginBottom: 14 }}>{debtPreview > 0 ? `Yangi qarz bo'ladi: ${fmt(debtPreview)}` : "Qarz qolmaydi"}</div>
                       {saleError && <div style={{ color: "#c0392b", fontSize: 13.5, marginBottom: 10 }}>{saleError}</div>}
                       <button className="mb-btn mb-btn-primary" disabled={busy} onClick={finishSale}>{busy ? "..." : "Sotuvni yakunlash va chek chiqarish"}</button>
                     </div>
@@ -539,7 +534,6 @@ export default function App() {
               )}
             </div>
           )}
-
           {section === "customers" && (
             <div style={{ display: "grid", gap: 14 }}>
               <input className="mb-input" style={{ maxWidth: 360 }} placeholder="ID yoki ism bo'yicha qidirish..." value={custSearch} onChange={(e) => setCustSearch(e.target.value)} />
@@ -549,7 +543,7 @@ export default function App() {
                   {customerResults.map((c) => (
                     <div key={c.id} className="mb-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", padding: 14 }} onClick={() => openCustomer(c)}>
                       <div><div style={{ fontWeight: 700 }}>{c.name}</div><div style={{ fontSize: 12.5, color: "#98A2B8", fontFamily: "monospace" }}>ID: {c.id} \u2022 {c.viloyat}</div></div>
-                      {c.debt > 0 && <div style={{ color: "#a1281f", fontWeight: 700, fontSize: 13.5 }}>Qarz: {fmt(c.debt)}</div>}
+                      {c.debt > 0 && <div style={{ color: "#f0837f", fontWeight: 700, fontSize: 13.5 }}>Qarz: {fmt(c.debt)}</div>}
                     </div>
                   ))}
                 </div>
@@ -560,7 +554,7 @@ export default function App() {
                   <div style={{ fontSize: 19, fontWeight: 700, margin: "4px 0" }}>{selectedCustomer.name}</div>
                   <div style={{ color: "#98A2B8", marginBottom: 12 }}>{selectedCustomer.viloyat}{selectedCustomer.manzil ? `, ${selectedCustomer.manzil}` : ""}</div>
                   <div style={{ display: "flex", gap: 16, marginBottom: 18, flexWrap: "wrap" }}>
-                    <div style={{ background: "#1B2740", borderRadius: 10, padding: "10px 16px" }}><div style={{ fontSize: 11.5, color: "#98A2B8", fontWeight: 700 }}>JORIY QARZ</div><div style={{ fontSize: 18, fontWeight: 700, color: selectedCustomer.debt > 0 ? "#a1281f" : "#2c7a4b" }}>{fmt(selectedCustomer.debt)}</div></div>
+                    <div style={{ background: "#1B2740", borderRadius: 10, padding: "10px 16px" }}><div style={{ fontSize: 11.5, color: "#98A2B8", fontWeight: 700 }}>JORIY QARZ</div><div style={{ fontSize: 18, fontWeight: 700, color: selectedCustomer.debt > 0 ? "#f0837f" : "#2c7a4b" }}>{fmt(selectedCustomer.debt)}</div></div>
                     <div style={{ background: "#1B2740", borderRadius: 10, padding: "10px 16px" }}><div style={{ fontSize: 11.5, color: "#98A2B8", fontWeight: 700 }}>JAMI XARIDLAR</div><div style={{ fontSize: 18, fontWeight: 700 }}>{selectedCustomer.purchases.length}</div></div>
                   </div>
                   <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
@@ -597,7 +591,7 @@ export default function App() {
                         <td style={{ fontSize: 12.5 }}>{formatDate(r.created_at)}</td>
                         <td>{r.customers?.name} <span style={{ color: "#98A2B8", fontFamily: "monospace", fontSize: 11.5 }}>({r.customer_id})</span></td>
                         <td>{r.seller_name}</td><td>{fmt(r.total)}</td>
-                        <td style={{ color: r.paid < r.total ? "#a1281f" : "#2c7a4b" }}>{fmt(r.paid)}</td>
+                        <td style={{ color: r.paid < r.total ? "#f0837f" : "#2c7a4b" }}>{fmt(r.paid)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -613,6 +607,7 @@ export default function App() {
           {section === "statistika" && <StatistikaSection />}
           {section === "stories" && <StoriesSection />}
           {section === "xodimlar" && <XodimlarSection />}
+          {section === "featured" && <FeaturedProductsSection />}
         </div>
         </div>
       </div>
@@ -626,7 +621,7 @@ function ReceiptOverlay({ data, onClose }) {
   return (
     <>
       <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 50 }} onClick={onClose}>
-        <div style={{ background: "#141B2E", borderRadius: 12, maxWidth: 640, width: "100%", maxHeight: "90vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ background: "#fff", borderRadius: 12, maxWidth: 640, width: "100%", maxHeight: "90vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: 12, borderBottom: "1px solid #eee" }}>
             <button className="mb-btn mb-btn-primary" onClick={() => window.print()}><Printer size={14} style={{ verticalAlign: -2 }} /> Chop etish</button>
             <button className="mb-btn mb-btn-ghost" onClick={onClose}><X size={16} /></button>
@@ -640,39 +635,38 @@ function ReceiptOverlay({ data, onClose }) {
 }
 
 function ReceiptContent({ data }) {
-  const { customer, purchase, seller } = data;
-  const hasQr = customer?.delivery_lat && customer?.delivery_lng;
+  const { customer, purchase, seller, sellerPhone } = data;
   return (
     <div style={{ padding: 28, color: "#111", fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "3px solid #111", paddingBottom: 14, marginBottom: 16, gap: 14, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "3px solid #111", paddingBottom: 14, marginBottom: 16, gap: 10, flexWrap: "wrap" }}>
         <div>
           <LogoMark size={18} />
           <div style={{ marginTop: 10, fontSize: 13.5, lineHeight: 1.7 }}>
+            <div>Buyurtma #: <b>{purchase.order_no || "-"}</b></div>
             <div>Mijoz ID: <b style={{ fontFamily: "monospace" }}>{customer?.id}</b></div>
             <div>Mijoz: <b>{customer?.name}</b></div>
+            <div>Mijoz tel: {customer?.phone || "-"}</div>
             <div>Manzil: {customer?.viloyat}{customer?.manzil ? `, ${customer.manzil}` : ""}</div>
           </div>
         </div>
-
-        {hasQr && (
-          <div style={{ textAlign: "center" }}>
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`https://yandex.uz/maps/?pt=${customer.delivery_lng},${customer.delivery_lat}&z=16&l=map`)}`}
-              alt="Manzil QR"
-              style={{ width: 84, height: 84 }}
-            />
-            <div style={{ fontSize: 10, color: "#666", marginTop: 4 }}>Yetkazib berish manzili</div>
-          </div>
-        )}
-
         <div style={{ textAlign: "right", fontSize: 12.5 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end", marginBottom: 4 }}><Instagram size={14} /> @marba_avtoparts</div>
           <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end", marginBottom: 10 }}><Send size={14} /> @marba_zapchast</div>
           <div>Sana: {formatDate(purchase.date)}</div>
           <div>Sotuvchi: {seller}</div>
+          <div>Sotuvchi tel: {sellerPhone || "-"}</div>
+          {customer?.delivery_lat && customer?.delivery_lng && (
+            <div style={{ marginTop: 10 }}>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`https://yandex.uz/maps/?pt=${customer.delivery_lng},${customer.delivery_lat}&z=16&l=map`)}`}
+                alt="Manzil QR"
+                style={{ width: 80, height: 80 }}
+              />
+              <div style={{ fontSize: 10, color: "#666", marginTop: 3 }}>Yetkazib berish manzili</div>
+            </div>
+          )}
         </div>
       </div>
-
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, marginBottom: 14 }}>
         <thead><tr><th style={{ textAlign: "left", padding: "6px 4px", borderBottom: "2px solid #111" }}>Nomi</th><th style={{ textAlign: "center", padding: "6px 4px", borderBottom: "2px solid #111" }}>Soni</th><th style={{ textAlign: "right", padding: "6px 4px", borderBottom: "2px solid #111" }}>Narxi</th><th style={{ textAlign: "right", padding: "6px 4px", borderBottom: "2px solid #111" }}>Summa</th></tr></thead>
         <tbody>
@@ -681,22 +675,20 @@ function ReceiptContent({ data }) {
           ))}
         </tbody>
       </table>
-
-      <div style={{ display: "flex", borderTop: "2px solid #111", paddingTop: 10, fontSize: 13.5 }}>
+      <div style={{ display: "flex", borderTop: "2px solid #111", paddingTop: 12, fontSize: 14 }}>
         <div style={{ flex: 1, textAlign: "center" }}>
-          <div style={{ fontSize: 10.5, color: "#666" }}>Jami</div>
-          <b>{fmt(purchase.total)}</b>
+          <div style={{ fontSize: 11, color: "#666" }}>Jami</div>
+          <div style={{ fontWeight: 700 }}>{fmt(purchase.total)}</div>
         </div>
-        <div style={{ flex: 1, textAlign: "center", borderLeft: "1px solid #ddd" }}>
-          <div style={{ fontSize: 10.5, color: "#666" }}>Eski qarz</div>
-          <b>{fmt(purchase.oldDebt)}</b>
+        <div style={{ flex: 1, textAlign: "center", borderLeft: "1px solid #ccc" }}>
+          <div style={{ fontSize: 11, color: "#666" }}>Eski qarz</div>
+          <div style={{ fontWeight: 700 }}>{fmt(purchase.oldDebt)}</div>
         </div>
-        <div style={{ flex: 1, textAlign: "center", borderLeft: "1px solid #ddd" }}>
-          <div style={{ fontSize: 10.5, color: "#666" }}>Hozirgi qarz</div>
-          <b style={{ color: purchase.newDebt > 0 ? "#a1281f" : "#2c7a4b" }}>{fmt(purchase.newDebt)}</b>
+        <div style={{ flex: 1, textAlign: "center", borderLeft: "1px solid #ccc" }}>
+          <div style={{ fontSize: 11, color: "#666" }}>Hozirgi qarz</div>
+          <div style={{ fontWeight: 700, color: purchase.newDebt > 0 ? "#a1281f" : "#2c7a4b" }}>{fmt(purchase.newDebt)}</div>
         </div>
       </div>
-
       <div style={{ borderTop: "1px solid #ccc", marginTop: 18, paddingTop: 10, fontSize: 11.5, color: "#666", textAlign: "center" }}>MARBA AUTO PARTS \u2014 Xaridingiz uchun rahmat!</div>
     </div>
   );
@@ -726,13 +718,6 @@ function OmborSection() {
     });
   }, [products, search]);
 
-  const featuredCounts = useMemo(() => {
-    const counts = {};
-    FEATURED_GROUPS.forEach((g) => { counts[g.key] = 0; });
-    products.forEach((p) => { if (p.featured && p.featured_group && counts[p.featured_group] !== undefined) counts[p.featured_group]++; });
-    return counts;
-  }, [products]);
-
   async function uploadImage(file) {
     const ext = file.name.split(".").pop();
     const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -751,24 +736,11 @@ function OmborSection() {
 
   async function saveForm() {
     if (!form.name.trim()) return;
-    if (form.featured) {
-      if (!form.featured_group) { alert("Market'da ko'rsatish uchun guruhni tanlang."); return; }
-      const isOwnGroup = form.id && form._originalFeaturedGroup === form.featured_group;
-      const effectiveCount = (featuredCounts[form.featured_group] || 0) - (isOwnGroup ? 1 : 0);
-      if (effectiveCount >= FEATURED_GROUP_LIMIT) {
-        alert(`"${FEATURED_GROUPS.find((g) => g.key === form.featured_group)?.label}" guruhida allaqachon ${FEATURED_GROUP_LIMIT}ta mahsulot bor.`);
-        return;
-      }
-    }
     setUploading(true);
     let imageUrl = form.image_url || null;
     try { if (form.imageFile) imageUrl = await uploadImage(form.imageFile); }
     catch (e) { alert("Rasm yuklashda xatolik: " + e.message); setUploading(false); return; }
-    const payload = {
-      name: form.name.trim(), price: Number(form.price) || 0, cost_price: Number(form.cost_price) || 0, qty: Number(form.qty) || 0,
-      image_url: imageUrl, birlik: form.birlik || "dona",
-      featured: !!form.featured, featured_group: form.featured ? form.featured_group : null,
-    };
+    const payload = { name: form.name.trim(), price: Number(form.price) || 0, cost_price: Number(form.cost_price) || 0, qty: Number(form.qty) || 0, image_url: imageUrl, birlik: form.birlik || "dona" };
     if (form.id) await supabase.from("products").update(payload).eq("id", form.id);
     else await supabase.from("products").insert(payload);
     setUploading(false); setForm(null); refresh();
@@ -783,21 +755,16 @@ function OmborSection() {
     <div>
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
-          <Search size={16} style={{ position: "absolute", left: 12, top: 12, color: "#8a887e" }} />
-          <input className="ob-input" style={{ paddingLeft: 36 }} placeholder="Nomini yozing (masalan: fil → filtr topiladi)" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Search size={16} style={{ position: "absolute", left: 12, top: 12, color: "#98A2B8" }} />
+          <input className="ob-input" style={{ paddingLeft: 36 }} placeholder="Nomini yozing..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <button className="ob-btn ob-btn-primary" onClick={() => setForm({ name: "", price: "", cost_price: "", qty: "", image_url: null, imageFile: null, birlik: "dona", featured: false, featured_group: null, _originalFeaturedGroup: null })}>
+        <button className="ob-btn ob-btn-primary" onClick={() => setForm({ name: "", price: "", cost_price: "", qty: "", image_url: null, imageFile: null, birlik: "dona" })}>
           <Plus size={14} style={{ verticalAlign: -2 }} /> Yangi tovar
         </button>
       </div>
 
-      <div style={{ fontSize: 12.5, color: "#8a887e", marginBottom: 14 }}>
-        Market'da ko'rsatiladigan mahsulotlar: {Object.values(featuredCounts).reduce((s, n) => s + n, 0)}/20
-        {" "}({FEATURED_GROUPS.map((g) => `${g.label}: ${featuredCounts[g.key]}/5`).join(" • ")})
-      </div>
-
       {form && (
-        <ProductForm form={form} setForm={setForm} uploading={uploading} onSave={saveForm} onCancel={() => setForm(null)} fileInputRef={fileInputRef} featuredCounts={featuredCounts} />
+        <ProductForm form={form} setForm={setForm} uploading={uploading} onSave={saveForm} onCancel={() => setForm(null)} fileInputRef={fileInputRef} />
       )}
 
       <div style={{ display: "grid", gap: 10 }}>
@@ -805,7 +772,7 @@ function OmborSection() {
           <EmptyState text="Hech narsa topilmadi." />
         ) : filtered.map((p) => (
           <ProductRow key={p.id} p={p}
-            onEdit={() => setForm({ id: p.id, name: p.name, price: p.price, cost_price: p.cost_price, qty: p.qty, image_url: p.image_url, imageFile: null, birlik: p.birlik || "dona", featured: !!p.featured, featured_group: p.featured_group || null, _originalFeaturedGroup: p.featured_group || null })}
+            onEdit={() => setForm({ id: p.id, name: p.name, price: p.price, cost_price: p.cost_price, qty: p.qty, image_url: p.image_url, imageFile: null, birlik: p.birlik || "dona" })}
             onDelete={() => deleteItem(p.id)} />
         ))}
       </div>
@@ -813,20 +780,20 @@ function OmborSection() {
   );
 }
 
-function ProductForm({ form, setForm, uploading, onSave, onCancel, fileInputRef, featuredCounts }) {
+function ProductForm({ form, setForm, uploading, onSave, onCancel, fileInputRef }) {
   return (
     <div className="ob-card" style={{ marginBottom: 16 }}>
       <div style={{ fontWeight: 700, marginBottom: 12 }}>{form.id ? "Tahrirlash" : "Yangi tovar kiritish"}</div>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
         <div>
           <div onClick={() => fileInputRef.current?.click()}
-            style={{ width: 110, height: 110, borderRadius: 10, border: "2px dashed #d8d6cc", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", background: "#f7f6f1" }}>
+            style={{ width: 110, height: 110, borderRadius: 10, border: "2px dashed #2A3652", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", background: "#1B2740" }}>
             {form.imageFile ? <img src={URL.createObjectURL(form.imageFile)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               : form.image_url ? <img src={form.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : <ImageIcon size={24} color="#8a887e" />}
+              : <ImageIcon size={24} color="#98A2B8" />}
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => setForm({ ...form, imageFile: e.target.files[0] })} />
-          <div style={{ fontSize: 11, color: "#8a887e", textAlign: "center", marginTop: 4 }}>Rasm</div>
+          <div style={{ fontSize: 11, color: "#98A2B8", textAlign: "center", marginTop: 4 }}>Rasm</div>
         </div>
         <div style={{ flex: 1, minWidth: 220, display: "grid", gap: 10 }}>
           <input className="ob-input" placeholder="Nomi" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -838,46 +805,17 @@ function ProductForm({ form, setForm, uploading, onSave, onCancel, fileInputRef,
             <input type="number" className="ob-input" placeholder="Miqdori" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })} />
             <div style={{ display: "flex", gap: 6 }}>
               <button type="button" onClick={() => setForm({ ...form, birlik: "dona" })}
-                className="ob-btn" style={{ flex: 1, background: form.birlik !== "komplekt" ? ORANGE : "#f7f6f1", color: form.birlik !== "komplekt" ? "#fff" : "#161615", padding: "10px 8px", fontSize: 13 }}>
+                className="ob-btn" style={{ flex: 1, background: form.birlik !== "komplekt" ? ORANGE : "#1B2740", color: "#fff", padding: "10px 8px", fontSize: 13 }}>
                 Dona
               </button>
               <button type="button" onClick={() => setForm({ ...form, birlik: "komplekt" })}
-                className="ob-btn" style={{ flex: 1, background: form.birlik === "komplekt" ? ORANGE : "#f7f6f1", color: form.birlik === "komplekt" ? "#fff" : "#161615", padding: "10px 8px", fontSize: 13 }}>
+                className="ob-btn" style={{ flex: 1, background: form.birlik === "komplekt" ? ORANGE : "#1B2740", color: "#fff", padding: "10px 8px", fontSize: 13 }}>
                 Komplekt
               </button>
             </div>
           </div>
         </div>
       </div>
-
-      <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #eee" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontWeight: 600, fontSize: 13.5 }}>
-          <input type="checkbox" checked={!!form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked, featured_group: e.target.checked ? form.featured_group : null })} />
-          Market ilovasida ko'rsatish
-        </label>
-        {form.featured && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-            {FEATURED_GROUPS.map((g) => {
-              const isOwnGroup = form._originalFeaturedGroup === g.key;
-              const count = (featuredCounts[g.key] || 0) - (isOwnGroup ? 1 : 0);
-              const full = count >= FEATURED_GROUP_LIMIT;
-              const selected = form.featured_group === g.key;
-              return (
-                <button key={g.key} type="button" disabled={full && !selected}
-                  onClick={() => setForm({ ...form, featured_group: g.key })}
-                  className="ob-btn" style={{
-                    padding: "8px 10px", fontSize: 12.5,
-                    background: selected ? ORANGE : "#f7f6f1", color: selected ? "#fff" : full ? "#c0392b" : "#161615",
-                    opacity: full && !selected ? 0.6 : 1,
-                  }}>
-                  {g.label} ({count}/{FEATURED_GROUP_LIMIT})
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
         <button className="ob-btn ob-btn-primary" disabled={uploading || !form.name.trim()} onClick={onSave}>{uploading ? "Yuklanmoqda..." : "Saqlash"}</button>
         <button className="ob-btn ob-btn-ghost" onClick={onCancel}>Bekor qilish</button>
@@ -889,20 +827,13 @@ function ProductForm({ form, setForm, uploading, onSave, onCancel, fileInputRef,
 function ProductRow({ p, onEdit, onDelete, extra }) {
   return (
     <div className="ob-card" style={{ display: "flex", alignItems: "center", gap: 14, padding: 14 }}>
-      <div style={{ width: 56, height: 56, borderRadius: 8, background: "#f7f6f1", flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {p.image_url ? <img src={p.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <ImageIcon size={20} color="#c9c7bd" />}
+      <div style={{ width: 56, height: 56, borderRadius: 8, background: "#1B2740", flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {p.image_url ? <img src={p.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <ImageIcon size={20} color="#5A6580" />}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: 14.5, display: "flex", alignItems: "center", gap: 6 }}>
-          {p.name}
-          {p.featured && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10.5, fontWeight: 700, color: ORANGE, background: "#FCEBE1", borderRadius: 6, padding: "2px 6px" }}>
-              <Sparkles size={10} /> {FEATURED_GROUPS.find((g) => g.key === p.featured_group)?.label || "Market"}
-            </span>
-          )}
-        </div>
-        <div style={{ fontSize: 12.5, color: "#8a887e" }}>
-          Kirim: {fmt(p.cost_price)} • Sotuv: {fmt(p.price)} • Miqdor: <span style={{ color: p.qty <= 0 ? "#c0392b" : "inherit", fontWeight: p.qty <= 0 ? 700 : 400 }}>{p.qty} {p.birlik === "komplekt" ? "komplekt" : "dona"}</span>
+        <div style={{ fontWeight: 700, fontSize: 14.5 }}>{p.name}{p.featured ? " \u2B50" : ""}</div>
+        <div style={{ fontSize: 12.5, color: "#98A2B8" }}>
+          Kirim: {fmt(p.cost_price)} \u2022 Sotuv: {fmt(p.price)} \u2022 Miqdor: <span style={{ color: p.qty <= 0 ? "#f0837f" : "inherit", fontWeight: p.qty <= 0 ? 700 : 400 }}>{p.qty} {p.birlik === "komplekt" ? "komplekt" : "dona"}</span>
         </div>
         <div style={{ fontSize: 12, color: "#2c7a4b", fontWeight: 600, marginTop: 2 }}>Foyda (birlik): {fmt((Number(p.price) || 0) - (Number(p.cost_price) || 0))}</div>
       </div>
@@ -917,7 +848,7 @@ function ProductRow({ p, onEdit, onDelete, extra }) {
 
 function EmptyState({ text }) {
   return (
-    <div className="ob-card" style={{ textAlign: "center", color: "#8a887e", padding: "30px 0" }}>
+    <div className="ob-card" style={{ textAlign: "center", color: "#98A2B8", padding: "30px 0" }}>
       <Package size={28} style={{ marginBottom: 8 }} />
       <div>{text}</div>
     </div>
@@ -1013,7 +944,7 @@ function UyOmborSection({ sellerName }) {
     <div>
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
-          <Search size={16} style={{ position: "absolute", left: 12, top: 12, color: "#8a887e" }} />
+          <Search size={16} style={{ position: "absolute", left: 12, top: 12, color: "#98A2B8" }} />
           <input className="ob-input" style={{ paddingLeft: 36 }} placeholder="Nomini yozing..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <button className="ob-btn ob-btn-ghost" onClick={loadHistory}>Obmen tarixi</button>
@@ -1030,12 +961,12 @@ function UyOmborSection({ sellerName }) {
             <div style={{ fontWeight: 700 }}>Obmen tarixi</div>
             <button className="ob-btn ob-btn-ghost" style={{ padding: "5px 9px" }} onClick={() => setShowHistory(false)}><X size={14} /></button>
           </div>
-          {history.length === 0 ? <div style={{ color: "#8a887e", fontSize: 13.5 }}>Hali obmen bo'lmagan.</div> : (
+          {history.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali obmen bo'lmagan.</div> : (
             <div style={{ display: "grid", gap: 8 }}>
               {history.map((h) => (
-                <div key={h.id} style={{ fontSize: 13, display: "flex", justifyContent: "space-between", borderBottom: "1px solid #efeee7", paddingBottom: 6 }}>
-                  <span>{h.product_name} — {h.qty} dona</span>
-                  <span style={{ color: "#8a887e" }}>{h.seller_name} • {formatDate(h.created_at)}</span>
+                <div key={h.id} style={{ fontSize: 13, display: "flex", justifyContent: "space-between", borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
+                  <span>{h.product_name} \u2014 {h.qty} dona</span>
+                  <span style={{ color: "#98A2B8" }}>{h.seller_name} \u2022 {formatDate(h.created_at)}</span>
                 </div>
               ))}
             </div>
@@ -1096,8 +1027,8 @@ function ReviziyaSection({ sellerName }) {
   return (
     <div>
       <div className="ob-card" style={{ marginBottom: 16 }}>
-        <div style={{ fontWeight: 700, marginBottom: 4 }}>Reviziya — qoldiqni tekshirish</div>
-        <div style={{ fontSize: 13, color: "#8a887e" }}>Har bir tovar uchun ombordagi haqiqiy sonini kiriting va saqlang. Farq bo'lsa avtomatik qayd etiladi va ombor qoldig'i yangilanadi.</div>
+        <div style={{ fontWeight: 700, marginBottom: 4 }}>Reviziya \u2014 qoldiqni tekshirish</div>
+        <div style={{ fontSize: 13, color: "#98A2B8" }}>Har bir tovar uchun ombordagi haqiqiy sonini kiriting va saqlang.</div>
       </div>
       <div style={{ display: "grid", gap: 10, marginBottom: 20 }}>
         {products.map((p) => {
@@ -1107,17 +1038,17 @@ function ReviziyaSection({ sellerName }) {
             <div key={p.id} className="ob-card" style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 160 }}>
                 <div style={{ fontWeight: 700, fontSize: 14.5 }}>{p.name}</div>
-                <div style={{ fontSize: 12.5, color: "#8a887e" }}>Tizimda: {p.qty} {p.birlik === "komplekt" ? "komplekt" : "dona"}</div>
+                <div style={{ fontSize: 12.5, color: "#98A2B8" }}>Tizimda: {p.qty} {p.birlik === "komplekt" ? "komplekt" : "dona"}</div>
               </div>
               <input type="number" className="ob-input" style={{ width: 100 }} placeholder="Haqiqiy son"
                 value={actuals[p.id] ?? ""} onChange={(e) => setActuals((a) => ({ ...a, [p.id]: e.target.value }))} />
               {diff !== null && !isNaN(diff) && (
-                <div style={{ fontSize: 13, fontWeight: 700, color: diff === 0 ? "#2c7a4b" : "#a1281f", minWidth: 90 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: diff === 0 ? "#2c7a4b" : "#f0837f", minWidth: 90 }}>
                   {diff === 0 ? "Mos keladi" : diff > 0 ? `+${diff} ortiq` : `${diff} kam`}
                 </div>
               )}
               <button className="ob-btn ob-btn-primary" style={{ padding: "8px 14px" }} disabled={actuals[p.id] === undefined || actuals[p.id] === ""} onClick={() => saveCheck(p)}>
-                {savedIds[p.id] ? "Saqlandi ✓" : "Saqlash"}
+                {savedIds[p.id] ? "Saqlandi \u2713" : "Saqlash"}
               </button>
             </div>
           );
@@ -1126,12 +1057,12 @@ function ReviziyaSection({ sellerName }) {
 
       <div className="ob-card">
         <div style={{ fontWeight: 700, marginBottom: 10 }}>So'nggi reviziyalar</div>
-        {history.length === 0 ? <div style={{ color: "#8a887e", fontSize: 13.5 }}>Hali reviziya qilinmagan.</div> : (
+        {history.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali reviziya qilinmagan.</div> : (
           <div style={{ display: "grid", gap: 8 }}>
             {history.map((h) => (
-              <div key={h.id} style={{ fontSize: 13, display: "flex", justifyContent: "space-between", borderBottom: "1px solid #efeee7", paddingBottom: 6, flexWrap: "wrap", gap: 4 }}>
-                <span>{h.product_name}: {h.expected_qty} → {h.actual_qty} <span style={{ color: h.difference === 0 ? "#2c7a4b" : "#a1281f", fontWeight: 700 }}>({h.difference > 0 ? "+" : ""}{h.difference})</span></span>
-                <span style={{ color: "#8a887e" }}>{h.seller_name} • {formatDate(h.created_at)}</span>
+              <div key={h.id} style={{ fontSize: 13, display: "flex", justifyContent: "space-between", borderBottom: "1px solid #1B2740", paddingBottom: 6, flexWrap: "wrap", gap: 4 }}>
+                <span>{h.product_name}: {h.expected_qty} \u2192 {h.actual_qty} <span style={{ color: h.difference === 0 ? "#2c7a4b" : "#f0837f", fontWeight: 700 }}>({h.difference > 0 ? "+" : ""}{h.difference})</span></span>
+                <span style={{ color: "#98A2B8" }}>{h.seller_name} \u2022 {formatDate(h.created_at)}</span>
               </div>
             ))}
           </div>
@@ -1209,11 +1140,11 @@ function VazvratSection({ sellerName }) {
             onKeyDown={(e) => e.key === "Enter" && searchCustomer()} />
           <button className="ob-btn ob-btn-dark" onClick={searchCustomer}><Search size={15} /></button>
         </div>
-        {error && <div style={{ color: "#c0392b", fontSize: 13.5, marginTop: 8 }}>{error}</div>}
+        {error && <div style={{ color: "#f0837f", fontSize: 13.5, marginTop: 8 }}>{error}</div>}
         {customer && (
-          <div style={{ marginTop: 12, padding: 10, background: "#f7f6f1", borderRadius: 8 }}>
+          <div style={{ marginTop: 12, padding: 10, background: "#1B2740", borderRadius: 8 }}>
             <div style={{ fontWeight: 700 }}>{customer.name}</div>
-            <div style={{ fontSize: 12.5, color: "#8a887e" }}>ID: {customer.id} • Joriy qarz: {fmt(customer.debt)}</div>
+            <div style={{ fontSize: 12.5, color: "#98A2B8" }}>ID: {customer.id} \u2022 Joriy qarz: {fmt(customer.debt)}</div>
           </div>
         )}
       </div>
@@ -1226,7 +1157,7 @@ function VazvratSection({ sellerName }) {
             <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
               {productResults.map((p) => (
                 <div key={p.id} onClick={() => { setSelectedProduct(p); setProductSearch(p.name); }}
-                  style={{ padding: "8px 10px", background: "#f7f6f1", borderRadius: 8, cursor: "pointer", fontSize: 13.5 }}>{p.name}</div>
+                  style={{ padding: "8px 10px", background: "#1B2740", borderRadius: 8, cursor: "pointer", fontSize: 13.5 }}>{p.name}</div>
               ))}
             </div>
           )}
@@ -1244,12 +1175,12 @@ function VazvratSection({ sellerName }) {
 
       <div className="ob-card">
         <div style={{ fontWeight: 700, marginBottom: 10 }}>So'nggi vazvratlar</div>
-        {history.length === 0 ? <div style={{ color: "#8a887e", fontSize: 13.5 }}>Hali vazvrat bo'lmagan.</div> : (
+        {history.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali vazvrat bo'lmagan.</div> : (
           <div style={{ display: "grid", gap: 8 }}>
             {history.map((h) => (
-              <div key={h.id} style={{ fontSize: 13, display: "flex", justifyContent: "space-between", borderBottom: "1px solid #efeee7", paddingBottom: 6, flexWrap: "wrap", gap: 4 }}>
-                <span>{h.product_name} x{h.qty} — mijoz {h.customer_id} — {fmt(h.amount)}</span>
-                <span style={{ color: "#8a887e" }}>{h.seller_name} • {formatDate(h.created_at)}</span>
+              <div key={h.id} style={{ fontSize: 13, display: "flex", justifyContent: "space-between", borderBottom: "1px solid #1B2740", paddingBottom: 6, flexWrap: "wrap", gap: 4 }}>
+                <span>{h.product_name} x{h.qty} \u2014 mijoz {h.customer_id} \u2014 {fmt(h.amount)}</span>
+                <span style={{ color: "#98A2B8" }}>{h.seller_name} \u2022 {formatDate(h.created_at)}</span>
               </div>
             ))}
           </div>
@@ -1327,7 +1258,7 @@ function StatistikaSection() {
     return { total, count: filtered.length };
   }, [allSales, periodTab, calDate]);
 
-  if (loading) return <div style={{ textAlign: "center", color: "#8a887e", padding: 30 }}>Yuklanmoqda...</div>;
+  if (loading) return <div style={{ textAlign: "center", color: "#98A2B8", padding: 30 }}>Yuklanmoqda...</div>;
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -1357,7 +1288,7 @@ function StatistikaSection() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-        <StatCard label="MIJOZLAR JORIY QARZI" value={fmt(totalDebt)} color="#a1281f" />
+        <StatCard label="MIJOZLAR JORIY QARZI" value={fmt(totalDebt)} color="#f0837f" />
         <StatCard label="OMBOR QIYMATI (kirim narxida)" value={fmt(omborValue.cost)} />
         <StatCard label="OMBOR QIYMATI (sotuv narxida)" value={fmt(omborValue.sale)} color="#2c7a4b" />
         <StatCard label="UY OMBOR QIYMATI (kirim narxida)" value={fmt(uyOmborValue.cost)} />
@@ -1366,10 +1297,10 @@ function StatistikaSection() {
 
       <div className="ob-card">
         <div style={{ fontWeight: 700, marginBottom: 10 }}>Sotuvchilar bo'yicha sotuv statistikasi</div>
-        {sellerStats.length === 0 ? <div style={{ color: "#8a887e", fontSize: 13.5 }}>Hali sotuv yo'q.</div> : (
+        {sellerStats.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali sotuv yo'q.</div> : (
           <div style={{ display: "grid", gap: 8 }}>
             {sellerStats.map(([name, total]) => (
-              <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, borderBottom: "1px solid #efeee7", paddingBottom: 6 }}>
+              <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
                 <span style={{ fontWeight: 600 }}>{name}</span>
                 <span style={{ fontWeight: 700 }}>{fmt(total)}</span>
               </div>
@@ -1379,19 +1310,19 @@ function StatistikaSection() {
       </div>
 
       <div className="ob-card">
-        <div style={{ fontWeight: 700, marginBottom: 10 }}>Haydovchilar qabul qilgan tolovlar</div>
-        {driverPayments.length === 0 ? <div style={{ color: "#8a887e", fontSize: 13.5 }}>Hali haydovchi orqali tolov qilinmagan.</div> : (
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>Haydovchilar qabul qilgan to'lovlar</div>
+        {driverPayments.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali haydovchi orqali to'lov qilinmagan.</div> : (
           <div style={{ display: "grid", gap: 8 }}>
             {driverPayments.map((p) => (
-              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5, borderBottom: "1px solid #efeee7", paddingBottom: 8, flexWrap: "wrap", gap: 4 }}>
+              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 8, flexWrap: "wrap", gap: 4 }}>
                 <div>
                   <div style={{ fontWeight: 600 }}>{p.driver_name} {"\u2192"} {p.customers?.name || "Nomalum mijoz"}</div>
-                  <div style={{ color: "#8a887e", fontSize: 12 }}>{formatDate(p.created_at)}</div>
+                  <div style={{ color: "#98A2B8", fontSize: 12 }}>{formatDate(p.created_at)}</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontWeight: 700 }}>{fmt(p.amount)}</div>
                   {p.currency === "SOM" && p.original_amount ? (
-                    <div style={{ fontSize: 11.5, color: "#8a887e" }}>{Number(p.original_amount).toLocaleString("en-US")} som</div>
+                    <div style={{ fontSize: 11.5, color: "#98A2B8" }}>{Number(p.original_amount).toLocaleString("en-US")} som</div>
                   ) : null}
                 </div>
               </div>
@@ -1399,6 +1330,15 @@ function StatistikaSection() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, color }) {
+  return (
+    <div className="ob-card">
+      <div style={{ fontSize: 11.5, color: "#98A2B8", fontWeight: 700, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 19, fontWeight: 700, color: color || "#E7EAF0" }}>{value}</div>
     </div>
   );
 }
@@ -1461,7 +1401,7 @@ function StoriesSection() {
     <div>
       <div className="ob-card" style={{ marginBottom: 16 }}>
         <div style={{ fontWeight: 700, marginBottom: 6 }}>Yangi story qo'shish</div>
-        <div style={{ fontSize: 13, color: "#8a887e", marginBottom: 12 }}>Rasm yoki video yuklang — mijoz mobil ilovasida Market bo'limi tepasida ko'rinadi.</div>
+        <div style={{ fontSize: 13, color: "#98A2B8", marginBottom: 12 }}>Rasm yoki video yuklang \u2014 mijoz mobil ilovasida Market bo'limi tepasida ko'rinadi.</div>
         <input ref={fileInputRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
         <button className="ob-btn ob-btn-primary" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
           {uploading ? "Yuklanmoqda..." : "Rasm / Video tanlash"}
@@ -1473,7 +1413,7 @@ function StoriesSection() {
           <div style={{ gridColumn: "1 / -1" }}><EmptyState text="Hali story qo'shilmagan." /></div>
         ) : stories.map((s) => (
           <div key={s.id} className="ob-card" style={{ padding: 10 }}>
-            <div style={{ width: "100%", aspectRatio: "1", borderRadius: 10, overflow: "hidden", background: "#f7f6f1", marginBottom: 8, position: "relative" }}>
+            <div style={{ width: "100%", aspectRatio: "1", borderRadius: 10, overflow: "hidden", background: "#1B2740", marginBottom: 8, position: "relative" }}>
               {s.media_type === "video" ? (
                 <video src={s.media_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} muted />
               ) : (
@@ -1485,7 +1425,7 @@ function StoriesSection() {
                 </div>
               )}
             </div>
-            <div onClick={() => showViewers(s.id)} style={{ textAlign: "center", fontSize: 12, color: "#8a887e", marginBottom: 8, cursor: "pointer" }}>
+            <div onClick={() => showViewers(s.id)} style={{ textAlign: "center", fontSize: 12, color: "#98A2B8", marginBottom: 8, cursor: "pointer" }}>
               {viewCounts[s.id] || 0} kishi ko'rdi
             </div>
             <button className="ob-btn ob-btn-danger" style={{ width: "100%", padding: "6px 0", fontSize: 12.5 }} onClick={() => deleteStory(s.id)}>
@@ -1503,13 +1443,13 @@ function StoriesSection() {
               <button className="ob-btn ob-btn-ghost" style={{ padding: "5px 9px" }} onClick={() => setViewersFor(null)}><X size={14} /></button>
             </div>
             {viewersList.length === 0 ? (
-              <div style={{ color: "#8a887e", fontSize: 13.5 }}>Hali hech kim ko'rmagan.</div>
+              <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali hech kim ko'rmagan.</div>
             ) : (
               <div style={{ display: "grid", gap: 8 }}>
                 {viewersList.map((v, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, borderBottom: "1px solid #efeee7", paddingBottom: 6 }}>
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
                     <span>{v.customers?.name || "Noma'lum"}</span>
-                    <span style={{ color: "#8a887e", fontSize: 12 }}>{formatDate(v.viewed_at)}</span>
+                    <span style={{ color: "#98A2B8", fontSize: 12 }}>{formatDate(v.viewed_at)}</span>
                   </div>
                 ))}
               </div>
@@ -1596,7 +1536,7 @@ function XodimlarSection() {
 
           {createdInfo ? (
             <div>
-              <div style={{ color: "#2c7a4b", fontWeight: 700, marginBottom: 8 }}>Xodim muvaffaqiyatli qoshildi!</div>
+              <div style={{ color: "#2c7a4b", fontWeight: 700, marginBottom: 8 }}>Xodim muvaffaqiyatli qo'shildi!</div>
               <div style={{ fontSize: 13.5, marginBottom: 4 }}>Ism: <b>{createdInfo.name}</b></div>
               {createdInfo.role === "yiguvchi" ? (
                 <div style={{ fontSize: 13.5, marginBottom: 12 }}>Kod: <b style={{ fontFamily: "monospace" }}>{createdInfo.raqam}</b></div>
@@ -1608,7 +1548,7 @@ function XodimlarSection() {
           ) : (
             <>
               <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-                {[["seller", "Sotuvchi"], ["driver", "Haydovchi"], ["yiguvchi", "Yiguvchi"]].map(([r, label]) => (
+                {[["seller", "Sotuvchi"], ["driver", "Haydovchi"], ["yiguvchi", "Yig'uvchi"]].map(([r, label]) => (
                   <button key={r} type="button" onClick={() => setRole(r)}
                     className="mb-btn" style={{ flex: 1, background: role === r ? ORANGE : "#232C42", color: "#fff", fontSize: 13 }}>{label}</button>
                 ))}
@@ -1638,12 +1578,12 @@ function XodimlarSection() {
         <div style={{ display: "grid", gap: 16 }}>
           <div className="mb-card">
             <div style={{ fontWeight: 700, marginBottom: 10 }}>Sotuvchilar ({sellers.length})</div>
-            {sellers.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali sotuvchi yoq.</div> : (
+            {sellers.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali sotuvchi yo'q.</div> : (
               <div style={{ display: "grid", gap: 8 }}>
                 {sellers.map((s) => (
                   <div key={s.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
                     <span>{s.name}</span>
-                    <span style={{ color: "#98A2B8" }}>{s.phone || "tel yoq"}</span>
+                    <span style={{ color: "#98A2B8" }}>{s.phone || "tel yo'q"}</span>
                   </div>
                 ))}
               </div>
@@ -1652,12 +1592,12 @@ function XodimlarSection() {
 
           <div className="mb-card">
             <div style={{ fontWeight: 700, marginBottom: 10 }}>Haydovchilar ({drivers.length})</div>
-            {drivers.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali haydovchi yoq.</div> : (
+            {drivers.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali haydovchi yo'q.</div> : (
               <div style={{ display: "grid", gap: 8 }}>
                 {drivers.map((d) => (
                   <div key={d.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
                     <span>{d.name}{d.is_admin ? " (admin)" : ""}</span>
-                    <span style={{ color: "#98A2B8" }}>{d.phone || "tel yoq"}</span>
+                    <span style={{ color: "#98A2B8" }}>{d.phone || "tel yo'q"}</span>
                   </div>
                 ))}
               </div>
@@ -1666,7 +1606,7 @@ function XodimlarSection() {
 
           <div className="mb-card">
             <div style={{ fontWeight: 700, marginBottom: 10 }}>Yig'uvchilar ({yiguvchilar.length})</div>
-            {yiguvchilar.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali yiguvchi yoq.</div> : (
+            {yiguvchilar.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali yig'uvchi yo'q.</div> : (
               <div style={{ display: "grid", gap: 8 }}>
                 {yiguvchilar.map((y) => (
                   <div key={y.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
@@ -1683,11 +1623,104 @@ function XodimlarSection() {
   );
 }
 
-function StatCard({ label, value, color }) {
+/* ---------------- MARKET TOVARLAR (Tanlangan mahsulotlar) ---------------- */
+function FeaturedProductsSection() {
+  const [products, setProducts] = useState([]);
+  const [search, setSearch] = useState("");
+  const [savingId, setSavingId] = useState(null);
+
+  useEffect(() => { refresh(); }, []);
+  async function refresh() {
+    const { data } = await supabase.from("products").select("*").order("name");
+    setProducts(data || []);
+  }
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return products;
+    const terms = q.split(/\s+/).filter(Boolean);
+    return products.filter((p) => {
+      const nameLower = p.name.toLowerCase();
+      return terms.every((term) => nameLower.includes(term));
+    });
+  }, [products, search]);
+
+  const featuredList = useMemo(() => products.filter((p) => p.featured), [products]);
+
+  async function toggleFeatured(p) {
+    setSavingId(p.id);
+    const newFeatured = !p.featured;
+    const payload = { featured: newFeatured, featured_group: newFeatured ? (p.featured_group || FEATURED_GROUPS[0].key) : null };
+    const { error } = await supabase.from("products").update(payload).eq("id", p.id);
+    if (error) { alert("Xatolik: " + error.message); setSavingId(null); return; }
+    await refresh();
+    setSavingId(null);
+  }
+
+  async function setGroup(p, groupKey) {
+    setSavingId(p.id);
+    const { error } = await supabase.from("products").update({ featured_group: groupKey }).eq("id", p.id);
+    if (error) { alert("Xatolik: " + error.message); setSavingId(null); return; }
+    await refresh();
+    setSavingId(null);
+  }
+
   return (
-    <div className="ob-card">
-      <div style={{ fontSize: 11.5, color: "#8a887e", fontWeight: 700, marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: 19, fontWeight: 700, color: color || "#161615" }}>{value}</div>
+    <div style={{ display: "grid", gap: 16 }}>
+      <div className="ob-card">
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>Tanlangan mahsulotlar ({featuredList.length})</div>
+        <div style={{ fontSize: 13, color: "#98A2B8", marginBottom: 14 }}>
+          Bu yerda belgilangan mahsulotlar mijoz mobil ilovasida Market bo'limi tepasida, guruhlar bo'yicha ko'rsatiladi.
+        </div>
+        <input className="ob-input" placeholder="Mahsulot qidirish..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+
+      <div style={{ display: "grid", gap: 8 }}>
+        {filtered.length === 0 ? (
+          <div style={{ color: "#98A2B8", textAlign: "center", padding: 20 }}>Mahsulot topilmadi.</div>
+        ) : filtered.map((p) => (
+          <div key={p.id} className="ob-card" style={{ padding: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <div style={{ width: 50, height: 50, borderRadius: 8, background: "#1B2740", flexShrink: 0, overflow: "hidden" }}>
+                {p.image_url ? <img src={p.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : null}
+              </div>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{p.name}</div>
+                <div style={{ fontSize: 12, color: "#98A2B8" }}>{fmt(p.price)}</div>
+              </div>
+              <button
+                onClick={() => toggleFeatured(p)}
+                disabled={savingId === p.id}
+                className="ob-btn"
+                style={{ background: p.featured ? ORANGE : "#232C42", color: "#fff", fontSize: 12.5, padding: "8px 14px" }}
+              >
+                {p.featured ? "Tanlangan \u2713" : "Tanlash"}
+              </button>
+            </div>
+
+            {p.featured && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12, paddingTop: 12, borderTop: "1px solid #232C42" }}>
+                {FEATURED_GROUPS.map((g) => (
+                  <button
+                    key={g.key}
+                    onClick={() => setGroup(p, g.key)}
+                    disabled={savingId === p.id}
+                    className="ob-btn"
+                    style={{
+                      background: p.featured_group === g.key ? ORANGE : "#1B2740",
+                      color: "#fff",
+                      fontSize: 12,
+                      padding: "7px 12px",
+                    }}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
