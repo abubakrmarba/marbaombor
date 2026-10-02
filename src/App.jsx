@@ -1859,6 +1859,13 @@ function ImportSection() {
     reader.readAsArrayBuffer(file);
   }
 
+  function parseNum(val) {
+    if (val === "" || val === null || val === undefined) return 0;
+    const cleaned = String(val).trim().replace(/\s/g, "").replace(",", ".");
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? 0 : n;
+  }
+
   async function runImport() {
     if (!mapping.name || !mapping.price) {
       alert("Kamida 'Nomi' va 'Narxi' ustunlarini belgilang");
@@ -1869,9 +1876,9 @@ function ImportSection() {
     for (const row of rawRows) {
       const name = String(row[Number(mapping.name)] || "").trim();
       if (!name) { failed++; continue; }
-      const price = Number(row[Number(mapping.price)]) || 0;
-      const cost_price = mapping.cost_price ? Number(row[Number(mapping.cost_price)]) || 0 : 0;
-      const qty = mapping.qty ? Number(row[Number(mapping.qty)]) || 0 : 0;
+      const price = parseNum(row[Number(mapping.price)]);
+      const cost_price = mapping.cost_price ? parseNum(row[Number(mapping.cost_price)]) : 0;
+      const qty = mapping.qty ? parseNum(row[Number(mapping.qty)]) : 0;
 
       const { error } = await supabase.from("products").insert({ name, price, cost_price, qty, birlik: "dona" });
       if (error) failed++; else success++;
