@@ -60,7 +60,11 @@ function LogoMark({ size = 20 }) {
 }
 
 async function nextCustomerId() {
-  const { data } = await supabase.from("customers").select("id");
+  const { data } = await supabase
+    .from("customers")
+    .select("id")
+    .order("id", { ascending: false })
+    .limit(50);
   const nums = (data || [])
     .map((c) => c.id.trim())
     .filter((id) => id.length === 4)
