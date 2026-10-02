@@ -98,6 +98,26 @@ export default function App() {
     return () => clearTimeout(t);
   }, []);
 
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const initialEtagRef = useRef(null);
+  useEffect(() => {
+    async function checkVersion() {
+      try {
+        const res = await fetch("/", { method: "HEAD", cache: "no-store" });
+        const etag = res.headers.get("etag") || res.headers.get("last-modified");
+        if (!etag) return;
+        if (initialEtagRef.current === null) {
+          initialEtagRef.current = etag;
+        } else if (etag !== initialEtagRef.current) {
+          setUpdateAvailable(true);
+        }
+      } catch (e) {}
+    }
+    checkVersion();
+    const interval = setInterval(checkVersion, 90000);
+    return () => clearInterval(interval);
+  }, []);
+
   const [session, setSession] = useState(null);
   const [sellerName, setSellerName] = useState("");
   const [sellerPhone, setSellerPhone] = useState("");
@@ -364,6 +384,7 @@ export default function App() {
     return (
       <div style={{ fontFamily: "system-ui, sans-serif", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0B1220", padding: 24 }}>
         <style>{allCss}</style>
+        {updateAvailable && <UpdateBanner />}
         <div style={{ width: "100%", maxWidth: 380 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}><LogoMark size={26} /></div>
           <div className="mb-card">
@@ -386,6 +407,7 @@ export default function App() {
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", minHeight: "100vh", background: PURPLE, color: "#161615" }}>
       <style>{allCss}</style>
+      {updateAvailable && <UpdateBanner />}
       <div className="no-print" style={{ display: "flex", minHeight: "100vh" }}>
         <div style={{ width: 230, background: "#0B1220", borderRight: `1px solid ${PURPLE_BORDER}`, display: "flex", flexDirection: "column", padding: "20px 12px", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 22 }}><LogoMark size={20} /></div>
@@ -673,6 +695,25 @@ export default function App() {
       </div>
 
       {receipt && <ReceiptOverlay data={receipt} onClose={() => setReceipt(null)} />}
+    </div>
+  );
+}
+
+function UpdateBanner() {
+  return (
+    <div style={{
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 999,
+      background: "#E9642B", color: "#fff", padding: "10px 16px",
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 14,
+      fontSize: 13.5, fontWeight: 700,
+    }}>
+      <span>Yangi versiya mavjud</span>
+      <button
+        onClick={() => window.location.reload(true)}
+        style={{ background: "#fff", color: "#E9642B", border: "none", borderRadius: 6, padding: "5px 14px", fontWeight: 700, cursor: "pointer", fontSize: 13 }}
+      >
+        Yangilash
+      </button>
     </div>
   );
 }
