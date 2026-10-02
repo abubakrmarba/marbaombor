@@ -87,6 +87,17 @@ function orderStatusColor(status) {
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  useEffect(() => {
+    try {
+      const audio = new window.Audio("/splash-sound.wav");
+      audio.volume = 0.8;
+      audio.play().catch(() => {});
+    } catch (e) {}
+    const t = setTimeout(() => setShowSplash(false), 2200);
+    return () => clearTimeout(t);
+  }, []);
+
   const [session, setSession] = useState(null);
   const [sellerName, setSellerName] = useState("");
   const [sellerPhone, setSellerPhone] = useState("");
@@ -331,6 +342,22 @@ export default function App() {
     const { data } = await supabase.from("customers").update({ debt: newDebt }).eq("id", selectedCustomer.id).select("*").single();
     setSelectedCustomer({ ...selectedCustomer, debt: data.debt });
     setPayAmount("");
+  }
+
+  if (showSplash) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#081018" }}>
+        <style>{`
+          @keyframes marbaSplashIn {
+            0% { opacity: 0; transform: scale(0.75); }
+            60% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+          .marba-splash-logo { animation: marbaSplashIn 1.1s cubic-bezier(.2,.9,.3,1.3) forwards; }
+        `}</style>
+        <img src="/logo.png" alt="MARBA" className="marba-splash-logo" style={{ width: 160, height: "auto" }} />
+      </div>
+    );
   }
 
   if (!session) {
