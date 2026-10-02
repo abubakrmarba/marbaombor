@@ -6,6 +6,7 @@ import {
   Warehouse, ClipboardCheck, Undo2, BarChart3, ArrowRightLeft, Sparkles, Video
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
+import * as XLSX from "xlsx";
 
 const SELLER_NAMES = ["Azizxon", "Doniyorjon", "Jahongir", "Javohirbek", "Hamidjon", "Jamshidbek", "Xislatbek", "Mubashirxon", "Jahongiroldi"];
 const FEATURED_GROUPS = [
@@ -24,6 +25,32 @@ function fmt(n) { return "$" + (Number(n) || 0).toLocaleString("en-US", { minimu
 function formatDate(iso) {
   try { return new Date(iso).toLocaleString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }); }
   catch (e) { return iso; }
+}
+
+function compressImage(file, maxWidth = 800, quality = 0.75) {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    const reader = new FileReader();
+    reader.onload = (e) => { img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = Math.round(height * (maxWidth / width));
+        width = maxWidth;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" })),
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function LogoMark({ size = 20 }) {
@@ -331,7 +358,7 @@ export default function App() {
       <div className="no-print" style={{ display: "flex", minHeight: "100vh" }}>
         <div style={{ width: 230, background: "#0B1220", borderRight: `1px solid ${PURPLE_BORDER}`, display: "flex", flexDirection: "column", padding: "20px 12px", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 22 }}><LogoMark size={20} /></div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, overflowY: "auto" }}>
             <div className={`sidebar-item ${section === "statistika" ? "active" : ""}`} onClick={() => setSection("statistika")}><BarChart3 size={17} /> Statistika</div>
 
             <div className={`sidebar-item ${["sale", "orders", "accepted", "history", "customers"].includes(section) ? "active" : ""}`} onClick={() => setExpandedGroup(expandedGroup === "sotuvchi" ? null : "sotuvchi")}>
@@ -363,6 +390,7 @@ export default function App() {
 
             <div className={`sidebar-item ${section === "stories" ? "active" : ""}`} onClick={() => setSection("stories")}><Sparkles size={17} /> Stories</div>
             <div className={`sidebar-item ${section === "featured" ? "active" : ""}`} onClick={() => setSection("featured")}><Package size={17} /> Market tovarlar</div>
+            <div className={`sidebar-item ${section === "import" ? "active" : ""}`} onClick={() => setSection("import")}><Package size={17} /> 1C Import</div>
           </div>
 
           <div style={{ borderTop: `1px solid ${PURPLE_BORDER}`, paddingTop: 14, marginTop: 10 }}>
@@ -608,6 +636,7 @@ export default function App() {
           {section === "stories" && <StoriesSection />}
           {section === "xodimlar" && <XodimlarSection />}
           {section === "featured" && <FeaturedProductsSection />}
+          {section === "import" && <ImportSection />}
         </div>
         </div>
       </div>
@@ -719,11 +748,13 @@ function OmborSection() {
   }, [products, search]);
 
   async function uploadImage(file) {
-    const ext = file.name.split(".").pop();
+    let uploadFile = file;
+    try { uploadFile = await compressImage(file); } catch (e) { /* siqishda xato bolsa, asl faylni yuklaymiz */ }
+    const ext = uploadFile.name.split(".").pop();
     const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     let lastError = null;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const { error } = await supabase.storage.from("part-images").upload(path, file);
+      const { error } = await supabase.storage.from("part-images").upload(path, uploadFile);
       if (!error) {
         const { data } = supabase.storage.from("part-images").getPublicUrl(path);
         return data.publicUrl;
@@ -889,11 +920,13 @@ function UyOmborSection({ sellerName }) {
   }, [items, search]);
 
   async function uploadImage(file) {
-    const ext = file.name.split(".").pop();
+    let uploadFile = file;
+    try { uploadFile = await compressImage(file); } catch (e) {}
+    const ext = uploadFile.name.split(".").pop();
     const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     let lastError = null;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const { error } = await supabase.storage.from("part-images").upload(path, file);
+      const { error } = await supabase.storage.from("part-images").upload(path, uploadFile);
       if (!error) {
         const { data } = supabase.storage.from("part-images").getPublicUrl(path);
         return data.publicUrl;
@@ -1717,7 +1750,7 @@ function FeaturedProductsSection() {
         if (list.length === 0) return null;
         return (
           <div key={g.key} className="ob-card">
-            <div style={{ fontWeight: 700, marginBottom: 10 }}>{g.label} — tartib</div>
+            <div style={{ fontWeight: 700, marginBottom: 10 }}>{g.label} \u2014 tartib</div>
             <div style={{ display: "grid", gap: 6 }}>
               {list.map((p, i) => (
                 <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "#1B2740", borderRadius: 8 }}>
@@ -1726,9 +1759,9 @@ function FeaturedProductsSection() {
                   </div>
                   <div style={{ flex: 1, fontSize: 13.5, fontWeight: 600 }}>{p.name}</div>
                   <button disabled={i === 0 || savingId === p.id} onClick={() => moveInGroup(g.key, i, -1)}
-                    className="ob-btn ob-btn-ghost" style={{ padding: "4px 10px", fontSize: 14 }}>{"↑"}</button>
+                    className="ob-btn ob-btn-ghost" style={{ padding: "4px 10px", fontSize: 14 }}>{"\u2191"}</button>
                   <button disabled={i === list.length - 1 || savingId === p.id} onClick={() => moveInGroup(g.key, i, 1)}
-                    className="ob-btn ob-btn-ghost" style={{ padding: "4px 10px", fontSize: 14 }}>{"↓"}</button>
+                    className="ob-btn ob-btn-ghost" style={{ padding: "4px 10px", fontSize: 14 }}>{"\u2193"}</button>
                 </div>
               ))}
             </div>
@@ -1782,6 +1815,133 @@ function FeaturedProductsSection() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* ---------------- 1C / EXCEL'DAN IMPORT ---------------- */
+function ImportSection() {
+  const [rawRows, setRawRows] = useState([]);
+  const [headers, setHeaders] = useState([]);
+  const [mapping, setMapping] = useState({ name: "", price: "", cost_price: "", qty: "" });
+  const [fileName, setFileName] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState(null);
+  const fileInputRef = useRef(null);
+
+  function handleFile(file) {
+    if (!file) return;
+    setFileName(file.name);
+    setResult(null);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+      if (json.length === 0) return;
+      const hdrs = json[0].map((h) => String(h).trim());
+      const rows = json.slice(1).filter((r) => r.some((c) => String(c).trim() !== ""));
+      setHeaders(hdrs);
+      setRawRows(rows);
+
+      const guess = (keywords) => {
+        const idx = hdrs.findIndex((h) => keywords.some((k) => h.toLowerCase().includes(k)));
+        return idx >= 0 ? String(idx) : "";
+      };
+      setMapping({
+        name: guess(["наимен", "nomi", "name", "товар"]),
+        price: guess(["цена", "narx", "price", "розниц"]),
+        cost_price: guess(["себестоим", "kirim", "закуп", "cost"]),
+        qty: guess(["кол", "miqdor", "qty", "остат"]),
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  async function runImport() {
+    if (!mapping.name || !mapping.price) {
+      alert("Kamida 'Nomi' va 'Narxi' ustunlarini belgilang");
+      return;
+    }
+    setImporting(true);
+    let success = 0, failed = 0;
+    for (const row of rawRows) {
+      const name = String(row[Number(mapping.name)] || "").trim();
+      if (!name) { failed++; continue; }
+      const price = Number(row[Number(mapping.price)]) || 0;
+      const cost_price = mapping.cost_price ? Number(row[Number(mapping.cost_price)]) || 0 : 0;
+      const qty = mapping.qty ? Number(row[Number(mapping.qty)]) || 0 : 0;
+
+      const { error } = await supabase.from("products").insert({ name, price, cost_price, qty, birlik: "dona" });
+      if (error) failed++; else success++;
+    }
+    setImporting(false);
+    setResult({ success, failed });
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <div className="ob-card">
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>1C / Excel'dan mahsulot import qilish</div>
+        <div style={{ fontSize: 13, color: "#98A2B8", marginBottom: 14 }}>
+          1C'da mahsulotlar ro'yxatini oching, "Barcha amallar" {"\u2192"} "Ro'yxatni chiqarish" orqali Excel'ga saqlang, keyin shu faylni shu yerga yuklang.
+        </div>
+        <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }}
+          onChange={(e) => handleFile(e.target.files[0])} />
+        <button className="ob-btn ob-btn-primary" onClick={() => fileInputRef.current?.click()}>
+          Excel fayl tanlash
+        </button>
+        {fileName && <div style={{ fontSize: 12.5, color: "#98A2B8", marginTop: 8 }}>Tanlangan: {fileName}</div>}
+      </div>
+
+      {headers.length > 0 && (
+        <div className="ob-card">
+          <div style={{ fontWeight: 700, marginBottom: 12 }}>Ustunlarni moslashtiring ({rawRows.length} qator topildi)</div>
+          <div style={{ display: "grid", gap: 10 }}>
+            {[
+              ["name", "Nomi (majburiy)"],
+              ["price", "Sotuv narxi (majburiy)"],
+              ["cost_price", "Kirim narxi (ixtiyoriy)"],
+              ["qty", "Miqdori (ixtiyoriy)"],
+            ].map(([key, label]) => (
+              <div key={key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 170, fontSize: 13.5, fontWeight: 600 }}>{label}</div>
+                <select
+                  className="ob-input"
+                  value={mapping[key]}
+                  onChange={(e) => setMapping((m) => ({ ...m, [key]: e.target.value }))}
+                >
+                  <option value="">{"\u2014 tanlanmagan \u2014"}</option>
+                  {headers.map((h, i) => (
+                    <option key={i} value={i}>{h || `Ustun ${i + 1}`}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 16, fontSize: 12.5, color: "#98A2B8" }}>
+            Namuna (birinchi 3 qator):
+            <div style={{ marginTop: 6, fontFamily: "monospace", fontSize: 11.5, background: "#1B2740", padding: 10, borderRadius: 8 }}>
+              {rawRows.slice(0, 3).map((r, i) => (
+                <div key={i}>{r.join(" | ")}</div>
+              ))}
+            </div>
+          </div>
+
+          <button className="ob-btn ob-btn-primary" style={{ marginTop: 16 }} disabled={importing} onClick={runImport}>
+            {importing ? "Import qilinmoqda..." : `${rawRows.length} ta mahsulotni import qilish`}
+          </button>
+
+          {result && (
+            <div style={{ marginTop: 12, fontSize: 13.5 }}>
+              <span style={{ color: "#2c7a4b", fontWeight: 700 }}>{result.success} ta muvaffaqiyatli</span>
+              {result.failed > 0 && <span style={{ color: "#f0837f", fontWeight: 700, marginLeft: 12 }}>{result.failed} ta xato</span>}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
