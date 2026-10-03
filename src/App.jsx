@@ -3,7 +3,7 @@ import {
   Search, Plus, Trash2, Printer, LogOut, ShoppingCart,
   Users, History, X, Instagram, Send, Wallet, Check, ChevronLeft, Inbox,
   Pencil, Package, Image as ImageIcon,
-  Warehouse, ClipboardCheck, Undo2, BarChart3, ArrowRightLeft, Sparkles, Video
+  Warehouse, ClipboardCheck, Undo2, BarChart3, ArrowRightLeft, Sparkles, Video, FileText
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import * as XLSX from "xlsx";
@@ -412,37 +412,20 @@ export default function App() {
         <div style={{ width: 230, background: "#0B1220", borderRight: `1px solid ${PURPLE_BORDER}`, display: "flex", flexDirection: "column", padding: "20px 12px", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 22 }}><LogoMark size={20} /></div>
           <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, overflowY: "auto" }}>
-            <div className={`sidebar-item ${section === "statistika" ? "active" : ""}`} onClick={() => setSection("statistika")}><BarChart3 size={17} /> Statistika</div>
-
-            <div className={`sidebar-item ${["sale", "orders", "accepted", "history", "customers"].includes(section) ? "active" : ""}`} onClick={() => setExpandedGroup(expandedGroup === "sotuvchi" ? null : "sotuvchi")}>
-              <ShoppingCart size={17} /> Sotuvchi
-            </div>
-            {expandedGroup === "sotuvchi" && (
-              <>
-                <div className={`sidebar-sub ${section === "sale" ? "active" : ""}`} onClick={() => setSection("sale")}>Yangi sotuv</div>
-                <div className={`sidebar-sub ${section === "orders" ? "active" : ""}`} onClick={() => setSection("orders")}>Yangi buyurtmalar{newOrdersCount > 0 ? ` (${newOrdersCount})` : ""}</div>
-                <div className={`sidebar-sub ${section === "accepted" ? "active" : ""}`} onClick={() => setSection("accepted")}>Qabul qilingan{acceptedOrdersCount > 0 ? ` (${acceptedOrdersCount})` : ""}</div>
-                <div className={`sidebar-sub ${section === "history" ? "active" : ""}`} onClick={() => setSection("history")}>Sotuvchi tarixi</div>
-                <div className={`sidebar-sub ${section === "customers" ? "active" : ""}`} onClick={() => setSection("customers")}>Mijozlar</div>
-              </>
-            )}
-
+            <div className={`sidebar-item ${section === "sale" ? "active" : ""}`} onClick={() => setSection("sale")}><ShoppingCart size={17} /> Yangi sotuv</div>
+            <div className={`sidebar-item ${section === "orders" ? "active" : ""}`} onClick={() => setSection("orders")}><Inbox size={17} /> Yangi buyurtmalar{newOrdersCount > 0 ? ` (${newOrdersCount})` : ""}</div>
+            <div className={`sidebar-item ${section === "accepted" ? "active" : ""}`} onClick={() => setSection("accepted")}><ClipboardCheck size={17} /> Qabul qilingan{acceptedOrdersCount > 0 ? ` (${acceptedOrdersCount})` : ""}</div>
+            <div className={`sidebar-item ${section === "history" ? "active" : ""}`} onClick={() => setSection("history")}><History size={17} /> Sotuvchi tarixi</div>
+            <div className={`sidebar-item ${section === "customers" ? "active" : ""}`} onClick={() => setSection("customers")}><Users size={17} /> Mijozlar</div>
+            <div className={`sidebar-item ${section === "aktsverka" ? "active" : ""}`} onClick={() => setSection("aktsverka")}><FileText size={17} /> Akt sverkasi</div>
             <div className={`sidebar-item ${section === "xodimlar" ? "active" : ""}`} onClick={() => setSection("xodimlar")}><Users size={17} /> Xodimlar</div>
-
-            <div className={`sidebar-item ${["ombor", "uyombor", "vazvrat", "reviziya"].includes(section) ? "active" : ""}`} onClick={() => setExpandedGroup(expandedGroup === "ombor" ? null : "ombor")}>
-              <Package size={17} /> Ombor
-            </div>
-            {expandedGroup === "ombor" && (
-              <>
-                <div className={`sidebar-sub ${section === "ombor" ? "active" : ""}`} onClick={() => setSection("ombor")}>Ombor</div>
-                <div className={`sidebar-sub ${section === "uyombor" ? "active" : ""}`} onClick={() => setSection("uyombor")}>Uy ombor</div>
-                <div className={`sidebar-sub ${section === "vazvrat" ? "active" : ""}`} onClick={() => setSection("vazvrat")}>Vazvrat</div>
-                <div className={`sidebar-sub ${section === "reviziya" ? "active" : ""}`} onClick={() => setSection("reviziya")}>Reviziya</div>
-              </>
-            )}
-
+            <div className={`sidebar-item ${section === "ombor" ? "active" : ""}`} onClick={() => setSection("ombor")}><Package size={17} /> Ombor</div>
+            <div className={`sidebar-item ${section === "uyombor" ? "active" : ""}`} onClick={() => setSection("uyombor")}><Warehouse size={17} /> Uy ombor</div>
+            <div className={`sidebar-item ${section === "vazvrat" ? "active" : ""}`} onClick={() => setSection("vazvrat")}><Undo2 size={17} /> Vazvrat</div>
+            <div className={`sidebar-item ${section === "reviziya" ? "active" : ""}`} onClick={() => setSection("reviziya")}><ClipboardCheck size={17} /> Reviziya</div>
             <div className={`sidebar-item ${section === "stories" ? "active" : ""}`} onClick={() => setSection("stories")}><Sparkles size={17} /> Stories</div>
             <div className={`sidebar-item ${section === "featured" ? "active" : ""}`} onClick={() => setSection("featured")}><Package size={17} /> Market tovarlar</div>
+            <div className={`sidebar-item ${section === "statistika" ? "active" : ""}`} onClick={() => setSection("statistika")}><BarChart3 size={17} /> Statistika</div>
             <div className={`sidebar-item ${section === "import" ? "active" : ""}`} onClick={() => setSection("import")}><Package size={17} /> 1C Import</div>
           </div>
 
@@ -681,6 +664,7 @@ export default function App() {
             </div>
           )}
 
+          {section === "aktsverka" && <AktSverkaSection />}
           {section === "ombor" && <OmborSection sellerName={sellerName} />}
           {section === "uyombor" && <UyOmborSection sellerName={sellerName} />}
           {section === "reviziya" && <ReviziyaSection sellerName={sellerName} />}
@@ -1567,6 +1551,156 @@ function StoriesSection() {
 }
 
 /* ---------------- XODIMLAR ---------------- */
+/* ---------------- AKT SVERKASI ---------------- */
+function AktSverkaSection() {
+  const [customerId, setCustomerId] = useState("");
+  const [customer, setCustomer] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [events, setEvents] = useState(null);
+  const [openingBalance, setOpeningBalance] = useState(0);
+
+  async function searchCustomer() {
+    const id = customerId.trim();
+    setError(""); setEvents(null);
+    if (!/^\d{4,8}$/.test(id)) { setError("Mijoz ID 4 yoki 8 xonali bolishi kerak"); return; }
+    const { data } = await supabase.from("customers").select("*").eq("id", id).maybeSingle();
+    if (data) setCustomer(data); else setError("Bunday mijoz topilmadi");
+  }
+
+  async function buildStatement() {
+    if (!customer) return;
+    setLoading(true);
+
+    const [{ data: sales }, { data: payments }, { data: vazvrat }] = await Promise.all([
+      supabase.from("sales").select("id, total, paid, created_at").eq("customer_id", customer.id),
+      supabase.from("payments").select("id, amount, created_at").eq("customer_id", customer.id),
+      supabase.from("vazvratlar").select("id, product_name, qty, amount, created_at").eq("customer_id", customer.id),
+    ]);
+
+    let all = [];
+    (sales || []).forEach((s) => {
+      all.push({ date: s.created_at, type: "Sotuv", desc: `Sotuv #${s.id.slice(0, 8)}`, debit: Number(s.total), credit: Number(s.paid) });
+    });
+    (payments || []).forEach((p) => {
+      all.push({ date: p.created_at, type: "Tolov", desc: "Tolov qilindi", debit: 0, credit: Number(p.amount) });
+    });
+    (vazvrat || []).forEach((v) => {
+      all.push({ date: v.created_at, type: "Vazvrat", desc: `${v.product_name} x${v.qty}`, debit: 0, credit: Number(v.amount) });
+    });
+
+    all.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const fromDate = dateFrom ? new Date(dateFrom + "T00:00:00") : null;
+    const toDate = dateTo ? new Date(dateTo + "T23:59:59") : null;
+
+    let opening = 0;
+    const periodEvents = [];
+    all.forEach((e) => {
+      const d = new Date(e.date);
+      if (fromDate && d < fromDate) {
+        opening += e.debit - e.credit;
+      } else if (toDate && d > toDate) {
+        // davrdan keyin - hisobga olinmaydi
+      } else {
+        periodEvents.push(e);
+      }
+    });
+
+    let running = opening;
+    const withBalance = periodEvents.map((e) => {
+      running += e.debit - e.credit;
+      return { ...e, balance: running };
+    });
+
+    setOpeningBalance(opening);
+    setEvents(withBalance);
+    setLoading(false);
+  }
+
+  const closingBalance = events && events.length > 0 ? events[events.length - 1].balance : openingBalance;
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <div className="mb-card no-print">
+        <div style={{ fontWeight: 700, marginBottom: 12 }}>1. Mijozni toping</div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <input className="mb-input" placeholder="Mijoz ID" value={customerId}
+            onChange={(e) => setCustomerId(e.target.value.replace(/\D/g, "").slice(0, 8))}
+            onKeyDown={(e) => e.key === "Enter" && searchCustomer()} />
+          <button className="mb-btn mb-btn-dark" onClick={searchCustomer}><Search size={15} /></button>
+        </div>
+        {error && <div style={{ color: "#f0837f", fontSize: 13.5 }}>{error}</div>}
+        {customer && (
+          <div style={{ marginTop: 10, padding: 10, background: "#1B2740", borderRadius: 8 }}>
+            <div style={{ fontWeight: 700 }}>{customer.name}</div>
+            <div style={{ fontSize: 12.5, color: "#98A2B8" }}>ID: {customer.id} \u2022 Joriy qarz: {fmt(customer.debt)}</div>
+          </div>
+        )}
+      </div>
+
+      {customer && (
+        <div className="mb-card no-print">
+          <div style={{ fontWeight: 700, marginBottom: 12 }}>2. Davr (ixtiyoriy)</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+            <input type="date" className="mb-input" style={{ maxWidth: 180 }} value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="Dan" />
+            <input type="date" className="mb-input" style={{ maxWidth: 180 }} value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="Gacha" />
+          </div>
+          <button className="mb-btn mb-btn-primary" disabled={loading} onClick={buildStatement}>{loading ? "..." : "Aktni shakllantirish"}</button>
+        </div>
+      )}
+
+      {events && customer && (
+        <div className="mb-card" id="akt-sverka-print">
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }} className="no-print">
+            <button className="mb-btn mb-btn-primary" onClick={() => window.print()}><Printer size={14} style={{ verticalAlign: -2 }} /> Chop etish</button>
+          </div>
+
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <div style={{ fontWeight: 800, fontSize: 18 }}>AKT SVERKASI</div>
+            <div style={{ fontSize: 13, color: "#98A2B8", marginTop: 4 }}>
+              {dateFrom || dateTo ? `${dateFrom || "..."} dan ${dateTo || "hozirgacha"}` : "Butun davr"}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 16, fontSize: 13.5 }}>
+            <div>Mijoz: <b>{customer.name}</b> (ID: {customer.id})</div>
+            <div style={{ color: "#98A2B8" }}>{customer.viloyat}{customer.manzil ? `, ${customer.manzil}` : ""}</div>
+          </div>
+
+          <div style={{ marginBottom: 12, fontSize: 13.5, fontWeight: 700 }}>
+            Davr boshiga qoldiq: {fmt(openingBalance)}
+          </div>
+
+          <table className="mb-table">
+            <thead><tr><th>Sana</th><th>Turi</th><th>Tavsif</th><th>Debet</th><th>Kredit</th><th>Qoldiq</th></tr></thead>
+            <tbody>
+              {events.length === 0 ? (
+                <tr><td colSpan={6} style={{ textAlign: "center", color: "#98A2B8", padding: 16 }}>Bu davrda operatsiya yoq</td></tr>
+              ) : events.map((e, i) => (
+                <tr key={i}>
+                  <td style={{ fontSize: 12 }}>{formatDate(e.date)}</td>
+                  <td>{e.type}</td>
+                  <td style={{ fontSize: 12.5 }}>{e.desc}</td>
+                  <td style={{ color: e.debit > 0 ? "#f0837f" : undefined }}>{e.debit > 0 ? fmt(e.debit) : "-"}</td>
+                  <td style={{ color: e.credit > 0 ? "#2c7a4b" : undefined }}>{e.credit > 0 ? fmt(e.credit) : "-"}</td>
+                  <td style={{ fontWeight: 700 }}>{fmt(e.balance)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div style={{ marginTop: 16, textAlign: "right", fontSize: 15, fontWeight: 800 }}>
+            Davr oxiriga qoldiq: {fmt(closingBalance)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function XodimlarSection() {
   const [sellers, setSellers] = useState([]);
   const [drivers, setDrivers] = useState([]);
