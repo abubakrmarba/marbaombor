@@ -420,6 +420,7 @@ export default function App() {
     { key: "featured", label: "Market tovarlar", icon: Package },
     { key: "statistika", label: "Statistika", icon: BarChart3 },
     { key: "import", label: "1C Import", icon: Package },
+    { key: "buxgalter", label: "Buxgalter", icon: FileText },
   ];
   const activeMenuItem = MENU_ITEMS.find((m) => m.key === section);
 
@@ -707,6 +708,7 @@ export default function App() {
           {section === "xodimlar" && <XodimlarSection />}
           {section === "featured" && <FeaturedProductsSection />}
           {section === "import" && <ImportSection />}
+          {section === "buxgalter" && <BuxgalterSection />}
         </div>
       </div>
       )}
@@ -1584,6 +1586,17 @@ function StoriesSection() {
 }
 
 /* ---------------- XODIMLAR ---------------- */
+/* ---------------- BUXGALTER ---------------- */
+function BuxgalterSection() {
+  return (
+    <div className="mb-card" style={{ textAlign: "center", padding: 40 }}>
+      <FileText size={32} style={{ marginBottom: 12, color: "#98A2B8" }} />
+      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Buxgalter bo'limi</div>
+      <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Bu bo'lim tez orada to'ldiriladi.</div>
+    </div>
+  );
+}
+
 /* ---------------- AKT SVERKASI ---------------- */
 function AktSverkaSection() {
   const [customerId, setCustomerId] = useState("");
@@ -1741,6 +1754,7 @@ function XodimlarSection() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [role, setRole] = useState("seller");
+  const [lavozim, setLavozim] = useState("sotuvchi");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -1770,7 +1784,7 @@ function XodimlarSection() {
   }
 
   function resetForm() {
-    setRole("seller"); setName(""); setUsername(""); setPassword(""); setRaqam("");
+    setRole("seller"); setName(""); setUsername(""); setPassword(""); setRaqam(""); setLavozim("sotuvchi");
     setFormError(""); setCreatedInfo(null);
   }
 
@@ -1844,7 +1858,7 @@ function XodimlarSection() {
       const res = await fetch("https://gbtqoqcvcgxueienqusn.supabase.co/functions/v1/create-staff", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ role, name: name.trim(), username: username.trim(), password, raqam: raqam.trim() }),
+        body: JSON.stringify({ role, name: name.trim(), username: username.trim(), password, raqam: raqam.trim(), lavozim }),
       });
       const json = await res.json();
       if (!json.ok) { setFormError(json.error || "Xatolik yuz berdi"); setCreating(false); return; }
@@ -1893,6 +1907,17 @@ function XodimlarSection() {
                 <>
                   <input className="mb-input" style={{ marginBottom: 8 }} placeholder="Login (masalan: azizxon)" value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" />
                   <input className="mb-input" style={{ marginBottom: 8 }} type="password" placeholder="Parol (kamida 6 belgi)" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  {role === "seller" && (
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 12.5, color: "#98A2B8", marginBottom: 6 }}>Lavozim</div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {[["sotuvchi", "Sotuvchi"], ["ceo", "CEO"], ["rahbar", "Rahbar"], ["buxgalter", "Buxgalter"]].map(([v, label]) => (
+                          <button key={v} type="button" onClick={() => setLavozim(v)}
+                            className="mb-btn" style={{ background: lavozim === v ? ORANGE : "#232C42", color: "#fff", fontSize: 12.5, padding: "7px 12px" }}>{label}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
               {formError && <div style={{ color: "#f0837f", fontSize: 13, marginBottom: 8 }}>{formError}</div>}
@@ -1916,7 +1941,7 @@ function XodimlarSection() {
                 {sellers.map((s) => (
                   <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
                     <div>
-                      <div>{s.name}</div>
+                      <div>{s.name}{s.lavozim && s.lavozim !== "sotuvchi" ? <span style={{ color: ORANGE, fontWeight: 700, fontSize: 11.5 }}> {"\u2022"} {s.lavozim.toUpperCase()}</span> : null}</div>
                       <div style={{ color: "#98A2B8", fontSize: 12 }}>{s.phone || "tel yo'q"}</div>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
