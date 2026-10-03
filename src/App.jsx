@@ -126,7 +126,7 @@ export default function App() {
   const [loginError, setLoginError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const [section, setSection] = useState("sale");
+  const [section, setSection] = useState(null);
   const [expandedGroup, setExpandedGroup] = useState("sotuvchi");
   const [products, setProducts] = useState([]);
 
@@ -404,47 +404,80 @@ export default function App() {
     );
   }
 
+  const MENU_ITEMS = [
+    { key: "sale", label: "Yangi sotuv", icon: ShoppingCart },
+    { key: "orders", label: "Yangi buyurtmalar", icon: Inbox, badge: newOrdersCount },
+    { key: "accepted", label: "Qabul qilingan", icon: ClipboardCheck, badge: acceptedOrdersCount },
+    { key: "history", label: "Sotuvchi tarixi", icon: History },
+    { key: "customers", label: "Mijozlar", icon: Users },
+    { key: "aktsverka", label: "Akt sverkasi", icon: FileText },
+    { key: "xodimlar", label: "Xodimlar", icon: Users },
+    { key: "ombor", label: "Ombor", icon: Package },
+    { key: "uyombor", label: "Uy ombor", icon: Warehouse },
+    { key: "vazvrat", label: "Vazvrat", icon: Undo2 },
+    { key: "reviziya", label: "Reviziya", icon: ClipboardCheck },
+    { key: "stories", label: "Stories", icon: Sparkles },
+    { key: "featured", label: "Market tovarlar", icon: Package },
+    { key: "statistika", label: "Statistika", icon: BarChart3 },
+    { key: "import", label: "1C Import", icon: Package },
+  ];
+  const activeMenuItem = MENU_ITEMS.find((m) => m.key === section);
+
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", minHeight: "100vh", background: PURPLE, color: "#161615" }}>
+    <div style={{ fontFamily: "system-ui, sans-serif", minHeight: "100vh", background: "#0B1220", color: "#E7EAF0" }}>
       <style>{allCss}</style>
       {updateAvailable && <UpdateBanner />}
-      <div className="no-print" style={{ display: "flex", minHeight: "100vh" }}>
-        <div style={{ width: 230, background: "#0B1220", borderRight: `1px solid ${PURPLE_BORDER}`, display: "flex", flexDirection: "column", padding: "20px 12px", flexShrink: 0 }}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 22 }}><LogoMark size={20} /></div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, overflowY: "auto" }}>
-            <div className={`sidebar-item ${section === "sale" ? "active" : ""}`} onClick={() => setSection("sale")}><ShoppingCart size={17} /> Yangi sotuv</div>
-            <div className={`sidebar-item ${section === "orders" ? "active" : ""}`} onClick={() => setSection("orders")}><Inbox size={17} /> Yangi buyurtmalar{newOrdersCount > 0 ? ` (${newOrdersCount})` : ""}</div>
-            <div className={`sidebar-item ${section === "accepted" ? "active" : ""}`} onClick={() => setSection("accepted")}><ClipboardCheck size={17} /> Qabul qilingan{acceptedOrdersCount > 0 ? ` (${acceptedOrdersCount})` : ""}</div>
-            <div className={`sidebar-item ${section === "history" ? "active" : ""}`} onClick={() => setSection("history")}><History size={17} /> Sotuvchi tarixi</div>
-            <div className={`sidebar-item ${section === "customers" ? "active" : ""}`} onClick={() => setSection("customers")}><Users size={17} /> Mijozlar</div>
-            <div className={`sidebar-item ${section === "aktsverka" ? "active" : ""}`} onClick={() => setSection("aktsverka")}><FileText size={17} /> Akt sverkasi</div>
-            <div className={`sidebar-item ${section === "xodimlar" ? "active" : ""}`} onClick={() => setSection("xodimlar")}><Users size={17} /> Xodimlar</div>
-            <div className={`sidebar-item ${section === "ombor" ? "active" : ""}`} onClick={() => setSection("ombor")}><Package size={17} /> Ombor</div>
-            <div className={`sidebar-item ${section === "uyombor" ? "active" : ""}`} onClick={() => setSection("uyombor")}><Warehouse size={17} /> Uy ombor</div>
-            <div className={`sidebar-item ${section === "vazvrat" ? "active" : ""}`} onClick={() => setSection("vazvrat")}><Undo2 size={17} /> Vazvrat</div>
-            <div className={`sidebar-item ${section === "reviziya" ? "active" : ""}`} onClick={() => setSection("reviziya")}><ClipboardCheck size={17} /> Reviziya</div>
-            <div className={`sidebar-item ${section === "stories" ? "active" : ""}`} onClick={() => setSection("stories")}><Sparkles size={17} /> Stories</div>
-            <div className={`sidebar-item ${section === "featured" ? "active" : ""}`} onClick={() => setSection("featured")}><Package size={17} /> Market tovarlar</div>
-            <div className={`sidebar-item ${section === "statistika" ? "active" : ""}`} onClick={() => setSection("statistika")}><BarChart3 size={17} /> Statistika</div>
-            <div className={`sidebar-item ${section === "import" ? "active" : ""}`} onClick={() => setSection("import")}><Package size={17} /> 1C Import</div>
+
+      {section === null ? (
+        <div className="no-print" style={{ minHeight: "100vh", padding: "32px 20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ marginBottom: 28 }}><LogoMark size={24} /></div>
+          <div
+            style={{ color: "#98A2B8", fontSize: 13, cursor: "pointer", marginBottom: 10, textAlign: "center" }}
+            onClick={() => {
+              const val = prompt("Telefon raqamingizni kiriting:", sellerPhone);
+              if (val !== null) savePhone(val.trim());
+            }}
+          >
+            <b style={{ color: "#fff" }}>{sellerName}</b>{sellerPhone ? "" : " (tel kiritilmagan)"}
           </div>
 
-          <div style={{ borderTop: `1px solid ${PURPLE_BORDER}`, paddingTop: 14, marginTop: 10 }}>
-            <div
-              style={{ color: "#98A2B8", fontSize: 12.5, cursor: "pointer", marginBottom: 10 }}
-              onClick={() => {
-                const val = prompt("Telefon raqamingizni kiriting:", sellerPhone);
-                if (val !== null) savePhone(val.trim());
-              }}
-              title="Telefon raqamingizni kiritish uchun bosing"
-            >
-              <b style={{ color: "#fff" }}>{sellerName}</b>{sellerPhone ? "" : " (tel kiritilmagan)"}
-            </div>
-            <button className="mb-btn mb-btn-ghost" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={doLogout}><LogOut size={15} /> Chiqish</button>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+            gap: 16,
+            width: "100%",
+            maxWidth: 1000,
+            marginTop: 10,
+          }}>
+            {MENU_ITEMS.map(({ key, label, icon: Icon, badge }) => (
+              <div key={key} onClick={() => setSection(key)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                <div style={{ position: "relative" }}>
+                  <div style={{ width: 68, height: 68, borderRadius: 20, background: "#141B2E", border: "1px solid #232C42", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon size={28} color={ORANGE} />
+                  </div>
+                  {!!badge && (
+                    <div style={{ position: "absolute", top: -6, right: -6, background: "#E53935", borderRadius: 10, minWidth: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px" }}>
+                      <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>{badge}</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: 12.5, textAlign: "center", color: "#C7CDDA", fontWeight: 600 }}>{label}</div>
+              </div>
+            ))}
           </div>
+
+          <button className="mb-btn mb-btn-ghost" style={{ marginTop: 36, display: "flex", alignItems: "center", gap: 6 }} onClick={doLogout}><LogOut size={15} /> Chiqish</button>
+        </div>
+      ) : (
+      <div className="no-print" style={{ minHeight: "100vh" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: `1px solid ${PURPLE_BORDER}`, background: "#0B1220" }}>
+          <button className="mb-btn mb-btn-ghost" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px" }} onClick={() => setSection(null)}>
+            <ChevronLeft size={16} /> Menyu
+          </button>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>{activeMenuItem ? activeMenuItem.label : ""}</div>
+          <button className="mb-btn mb-btn-ghost" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px" }} onClick={doLogout}><LogOut size={15} /> Chiqish</button>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto" }}>
         <div style={{ padding: 20, maxWidth: 1400, margin: "0 auto" }}>
           {section === "orders" && (
             <div className="mb-card">
@@ -675,8 +708,8 @@ export default function App() {
           {section === "featured" && <FeaturedProductsSection />}
           {section === "import" && <ImportSection />}
         </div>
-        </div>
       </div>
+      )}
 
       {receipt && <ReceiptOverlay data={receipt} onClose={() => setReceipt(null)} />}
     </div>
