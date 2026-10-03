@@ -1582,6 +1582,12 @@ function XodimlarSection() {
   const [creating, setCreating] = useState(false);
   const [createdInfo, setCreatedInfo] = useState(null);
 
+  const [editTarget, setEditTarget] = useState(null); // { role, row }
+  const [editName, setEditName] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editError, setEditError] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
+
   useEffect(() => { refresh(); }, []);
   async function refresh() {
     setLoading(true);
@@ -1599,6 +1605,61 @@ function XodimlarSection() {
   function resetForm() {
     setRole("seller"); setName(""); setUsername(""); setPassword(""); setRaqam("");
     setFormError(""); setCreatedInfo(null);
+  }
+
+  function openEdit(role, row) {
+    setEditTarget({ role, row });
+    setEditName(row.name);
+    setEditPassword("");
+    setEditError("");
+  }
+
+  async function saveEdit() {
+    if (!editName.trim()) { setEditError("Ism bosh bolmasin"); return; }
+    setEditBusy(true);
+    setEditError("");
+    const table = editTarget.role === "seller" ? "sellers" : editTarget.role === "driver" ? "drivers" : "yiguvchilar";
+    const { error } = await supabase.from(table).update({ name: editName.trim() }).eq("id", editTarget.row.id);
+    if (error) { setEditError("Xatolik: " + error.message); setEditBusy(false); return; }
+
+    if (editTarget.role !== "yiguvchi" && editPassword.trim()) {
+      if (editPassword.trim().length < 6) { setEditError("Parol kamida 6 belgi bolishi kerak"); setEditBusy(false); return; }
+      try {
+        const sessionRes = await supabase.auth.getSession();
+        const token = sessionRes.data.session ? sessionRes.data.session.access_token : "";
+        const res = await fetch("https://gbtqoqcvcgxueienqusn.supabase.co/functions/v1/manage-staff", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "reset_password", authUserId: editTarget.row.auth_user_id, newPassword: editPassword.trim() }),
+        });
+        const json = await res.json();
+        if (!json.ok) { setEditError(json.error || "Parolni yangilashda xato"); setEditBusy(false); return; }
+      } catch (e) {
+        setEditError("Tarmoq xatoligi"); setEditBusy(false); return;
+      }
+    }
+
+    setEditBusy(false);
+    setEditTarget(null);
+    refresh();
+  }
+
+  async function deleteStaff(role, row) {
+    if (!confirm(`${row.name}ni ochirishga ishonchingiz komilmi?`)) return;
+    try {
+      const sessionRes = await supabase.auth.getSession();
+      const token = sessionRes.data.session ? sessionRes.data.session.access_token : "";
+      const res = await fetch("https://gbtqoqcvcgxueienqusn.supabase.co/functions/v1/manage-staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "delete", role, tableId: row.id, authUserId: row.auth_user_id || null }),
+      });
+      const json = await res.json();
+      if (!json.ok) { alert("Xatolik: " + (json.error || "")); return; }
+      refresh();
+    } catch (e) {
+      alert("Tarmoq xatoligi");
+    }
   }
 
   async function createStaff() {
@@ -1686,9 +1747,15 @@ function XodimlarSection() {
             {sellers.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali sotuvchi yo'q.</div> : (
               <div style={{ display: "grid", gap: 8 }}>
                 {sellers.map((s) => (
-                  <div key={s.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
-                    <span>{s.name}</span>
-                    <span style={{ color: "#98A2B8" }}>{s.phone || "tel yo'q"}</span>
+                  <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
+                    <div>
+                      <div>{s.name}</div>
+                      <div style={{ color: "#98A2B8", fontSize: 12 }}>{s.phone || "tel yo'q"}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button className="mb-btn mb-btn-ghost" style={{ padding: "5px 9px" }} onClick={() => openEdit("seller", s)}><Pencil size={13} /></button>
+                      <button className="mb-btn mb-btn-danger" style={{ padding: "5px 9px" }} onClick={() => deleteStaff("seller", s)}><Trash2 size={13} /></button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1700,9 +1767,15 @@ function XodimlarSection() {
             {drivers.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali haydovchi yo'q.</div> : (
               <div style={{ display: "grid", gap: 8 }}>
                 {drivers.map((d) => (
-                  <div key={d.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
-                    <span>{d.name}{d.is_admin ? " (admin)" : ""}</span>
-                    <span style={{ color: "#98A2B8" }}>{d.phone || "tel yo'q"}</span>
+                  <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
+                    <div>
+                      <div>{d.name}{d.is_admin ? " (admin)" : ""}</div>
+                      <div style={{ color: "#98A2B8", fontSize: 12 }}>{d.phone || "tel yo'q"}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button className="mb-btn mb-btn-ghost" style={{ padding: "5px 9px" }} onClick={() => openEdit("driver", d)}><Pencil size={13} /></button>
+                      <button className="mb-btn mb-btn-danger" style={{ padding: "5px 9px" }} onClick={() => deleteStaff("driver", d)}><Trash2 size={13} /></button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1714,13 +1787,39 @@ function XodimlarSection() {
             {yiguvchilar.length === 0 ? <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali yig'uvchi yo'q.</div> : (
               <div style={{ display: "grid", gap: 8 }}>
                 {yiguvchilar.map((y) => (
-                  <div key={y.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
-                    <span>{y.name}</span>
-                    <span style={{ color: "#98A2B8", fontFamily: "monospace" }}>Kod: {y.raqam}</span>
+                  <div key={y.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13.5, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
+                    <div>
+                      <div>{y.name}</div>
+                      <div style={{ color: "#98A2B8", fontSize: 12, fontFamily: "monospace" }}>Kod: {y.raqam}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button className="mb-btn mb-btn-ghost" style={{ padding: "5px 9px" }} onClick={() => openEdit("yiguvchi", y)}><Pencil size={13} /></button>
+                      <button className="mb-btn mb-btn-danger" style={{ padding: "5px 9px" }} onClick={() => deleteStaff("yiguvchi", y)}><Trash2 size={13} /></button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {editTarget && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }} onClick={() => setEditTarget(null)}>
+          <div className="mb-card" style={{ maxWidth: 360, width: "90%" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={{ fontWeight: 700 }}>Tahrirlash</div>
+              <button className="mb-btn mb-btn-ghost" style={{ padding: "5px 9px" }} onClick={() => setEditTarget(null)}><X size={14} /></button>
+            </div>
+            <input className="mb-input" style={{ marginBottom: 10 }} placeholder="Ismi" value={editName} onChange={(e) => setEditName(e.target.value)} />
+            {editTarget.role !== "yiguvchi" && (
+              <input className="mb-input" style={{ marginBottom: 10 }} type="password" placeholder="Yangi parol (ixtiyoriy, ozgartirmasa bosh qoldiring)" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} />
+            )}
+            {editError && <div style={{ color: "#f0837f", fontSize: 13, marginBottom: 10 }}>{editError}</div>}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="mb-btn mb-btn-primary" disabled={editBusy} onClick={saveEdit}>{editBusy ? "..." : "Saqlash"}</button>
+              <button className="mb-btn mb-btn-ghost" onClick={() => setEditTarget(null)}>Bekor qilish</button>
+            </div>
           </div>
         </div>
       )}
