@@ -421,6 +421,7 @@ export default function App() {
     { key: "statistika", label: "Statistika", icon: BarChart3 },
     { key: "import", label: "1C Import", icon: Package },
     { key: "buxgalter", label: "Buxgalter", icon: FileText },
+    { key: "yiguv", label: "Yig'uv", icon: ClipboardCheck },
   ];
   const activeMenuItem = MENU_ITEMS.find((m) => m.key === section);
 
@@ -709,6 +710,7 @@ export default function App() {
           {section === "featured" && <FeaturedProductsSection />}
           {section === "import" && <ImportSection />}
           {section === "buxgalter" && <BuxgalterSection />}
+          {section === "yiguv" && <YiguvSection />}
         </div>
       </div>
       )}
@@ -1586,6 +1588,109 @@ function StoriesSection() {
 }
 
 /* ---------------- XODIMLAR ---------------- */
+/* ---------------- YIGUV (Yiguvchi - polka belgilash) ---------------- */
+function YiguvSection() {
+  const [code, setCode] = useState("");
+  const [yiguvchi, setYiguvchi] = useState(null);
+  const [codeError, setCodeError] = useState("");
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [polkaDraft, setPolkaDraft] = useState({});
+  const [savingId, setSavingId] = useState(null);
+
+  async function identify() {
+    setCodeError("");
+    const raqam = code.trim();
+    if (!raqam) { setCodeError("Kodni kiriting"); return; }
+    const { data } = await supabase.from("yiguvchilar").select("*").eq("raqam", raqam).maybeSingle();
+    if (!data) { setCodeError("Bunday kod topilmadi"); return; }
+    setYiguvchi(data);
+    refreshOrders();
+  }
+
+  async function refreshOrders() {
+    setOrdersLoading(true);
+    const { data } = await supabase
+      .from("buyurtmalar")
+      .select("*, buyurtma_items(*)")
+      .eq("status", "qabul_qilindi")
+      .order("created_at", { ascending: true });
+    const list = data || [];
+    const customerIds = [...new Set(list.map((o) => o.customer_id))];
+    let customerMap = {};
+    if (customerIds.length) {
+      const { data: custs } = await supabase.from("customers").select("id, name, viloyat, manzil").in("id", customerIds);
+      (custs || []).forEach((c) => { customerMap[c.id] = c; });
+    }
+    setOrders(list.map((o) => ({ ...o, customer: customerMap[o.customer_id] })));
+    setOrdersLoading(false);
+  }
+
+  async function markPacked(order) {
+    const polka = String(polkaDraft[order.id] || "").trim();
+    if (!polka) { alert("Polka raqamini kiriting"); return; }
+    setSavingId(order.id);
+    const { error } = await supabase
+      .from("buyurtmalar")
+      .update({ status: "yigilmoqda", packed_by: yiguvchi.name, polka: Number(polka) || polka })
+      .eq("id", order.id);
+    setSavingId(null);
+    if (error) { alert("Xatolik: " + error.message); return; }
+    refreshOrders();
+  }
+
+  if (!yiguvchi) {
+    return (
+      <div className="mb-card" style={{ maxWidth: 360 }}>
+        <div style={{ fontWeight: 700, marginBottom: 12 }}>Kodingizni kiriting</div>
+        <input className="mb-input" style={{ marginBottom: 10 }} placeholder="Masalan: 101" value={code}
+          onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === "Enter" && identify()} />
+        {codeError && <div style={{ color: "#f0837f", fontSize: 13, marginBottom: 10 }}>{codeError}</div>}
+        <button className="mb-btn mb-btn-primary" onClick={identify}>Kirish</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <div className="mb-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ fontWeight: 700 }}>Yig'uvchi: {yiguvchi.name}</div>
+        <button className="mb-btn mb-btn-ghost" onClick={() => { setYiguvchi(null); setCode(""); }}>Chiqish</button>
+      </div>
+
+      <div className="mb-card">
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>Yig'ish kerak bo'lgan buyurtmalar ({orders.length})</div>
+        {ordersLoading ? (
+          <div style={{ color: "#98A2B8" }}>Yuklanmoqda...</div>
+        ) : orders.length === 0 ? (
+          <div style={{ textAlign: "center", color: "#98A2B8", padding: "24px 0" }}>Hozircha yig'ilishi kerak bo'lgan buyurtma yo'q.</div>
+        ) : (
+          <div style={{ display: "grid", gap: 10 }}>
+            {orders.map((o) => (
+              <div key={o.id} style={{ border: "1px solid #232C42", borderRadius: 10, padding: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
+                  <div style={{ fontWeight: 700 }}>{o.customer?.name || "Noma'lum"} <span style={{ color: "#98A2B8", fontFamily: "monospace", fontWeight: 400, fontSize: 12 }}>({o.customer_id})</span></div>
+                  <div style={{ color: "#98A2B8", fontSize: 12 }}>{o.order_no ? `#${o.order_no}` : ""}</div>
+                </div>
+                <div style={{ fontSize: 13, marginBottom: 10, color: "#C7CDDA" }}>
+                  {o.buyurtma_items.map((it) => `${it.product_name} x${it.qty}`).join(", ")}
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <input className="mb-input" style={{ maxWidth: 120 }} placeholder="Polka raqami"
+                    value={polkaDraft[o.id] ?? ""} onChange={(e) => setPolkaDraft((d) => ({ ...d, [o.id]: e.target.value }))} />
+                  <button className="mb-btn mb-btn-primary" disabled={savingId === o.id} onClick={() => markPacked(o)}>
+                    {savingId === o.id ? "..." : "Yig'ildi"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- BUXGALTER ---------------- */
 function BuxgalterSection() {
   return (
