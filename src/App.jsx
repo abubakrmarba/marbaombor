@@ -121,12 +121,15 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [sellerName, setSellerName] = useState("");
   const [sellerPhone, setSellerPhone] = useState("");
+  const [sellerLavozim, setSellerLavozim] = useState("sotuvchi");
   const [loginName, setLoginName] = useState("");
   const [loginPass, setLoginPass] = useState("");
   const [loginError, setLoginError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const [section, setSection] = useState(null);
+  const [sectionState, setSection] = useState(null);
+  const restricted = sellerLavozim === "mesta";
+  const section = restricted ? "polka" : sectionState;
   const [expandedGroup, setExpandedGroup] = useState("sotuvchi");
   const [products, setProducts] = useState([]);
 
@@ -157,16 +160,17 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { if (data.session) initSeller(data.session); });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (s) initSeller(s); else { setSession(null); setSellerName(""); }
+      if (s) initSeller(s); else { setSession(null); setSellerName(""); setSellerLavozim("sotuvchi"); }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
 
   async function initSeller(s) {
-    setSession(s);
-    const { data } = await supabase.from("sellers").select("name, phone").eq("auth_user_id", s.user.id).maybeSingle();
+    const { data } = await supabase.from("sellers").select("name, phone, lavozim").eq("auth_user_id", s.user.id).maybeSingle();
     setSellerName(data?.name || s.user.email.split("@")[0]);
     setSellerPhone(data?.phone || "");
+    setSellerLavozim(data?.lavozim || "sotuvchi");
+    setSession(s);
   }
 
   useEffect(() => { if (session) refreshProducts(); }, [session]);
@@ -246,7 +250,7 @@ export default function App() {
   }
   async function doLogout() {
     await supabase.auth.signOut();
-    setSection("sale"); setSaleCustomer(null); setCart([]);
+    setSection(null); setSaleCustomer(null); setCart([]);
   }
 
   async function searchCustomer() {
@@ -475,9 +479,11 @@ export default function App() {
       ) : (
       <div className="no-print" style={{ minHeight: "100vh" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: `1px solid ${PURPLE_BORDER}`, background: "#0B1220" }}>
-          <button className="mb-btn mb-btn-ghost" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px" }} onClick={() => setSection(null)}>
-            <ChevronLeft size={16} /> Menyu
-          </button>
+          {!restricted && (
+            <button className="mb-btn mb-btn-ghost" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px" }} onClick={() => setSection(null)}>
+              <ChevronLeft size={16} /> Menyu
+            </button>
+          )}
           <div style={{ fontWeight: 700, fontSize: 15 }}>{activeMenuItem ? activeMenuItem.label : ""}</div>
           <button className="mb-btn mb-btn-ghost" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px" }} onClick={doLogout}><LogOut size={15} /> Chiqish</button>
         </div>
@@ -2490,7 +2496,7 @@ function XodimlarSection() {
                     <div style={{ marginBottom: 8 }}>
                       <div style={{ fontSize: 12.5, color: "#98A2B8", marginBottom: 6 }}>Lavozim</div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {[["sotuvchi", "Sotuvchi"], ["ceo", "CEO"], ["rahbar", "Rahbar"], ["buxgalter", "Buxgalter"]].map(([v, label]) => (
+                        {[["sotuvchi", "Sotuvchi"], ["ceo", "CEO"], ["rahbar", "Rahbar"], ["buxgalter", "Buxgalter"], ["mesta", "Mesta"]].map(([v, label]) => (
                           <button key={v} type="button" onClick={() => setLavozim(v)}
                             className="mb-btn" style={{ background: lavozim === v ? ORANGE : "#232C42", color: "#fff", fontSize: 12.5, padding: "7px 12px" }}>{label}</button>
                         ))}
