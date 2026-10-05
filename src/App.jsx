@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import * as XLSX from "xlsx";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 const SELLER_NAMES = ["Azizxon", "Doniyorjon", "Jahongir", "Javohirbek", "Hamidjon", "Jamshidbek", "Xislatbek", "Mubashirxon", "Jahongiroldi"];
 const FEATURED_GROUPS = [
@@ -1941,12 +1943,13 @@ function HaydovchilarSection() {
   return (
     <div style={{ display: "grid", gap: 16 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {[["holat", "Holat"], ["masofa", "Masofa"], ["tolovlar", "To'lovlar"]].map(([k, label]) => (
+        {[["holat", "Holat"], ["xarita", "Xarita"], ["masofa", "Masofa"], ["tolovlar", "To'lovlar"]].map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} className="mb-btn"
             style={{ background: tab === k ? ORANGE : "#232C42", color: "#fff", fontSize: 13 }}>{label}</button>
         ))}
       </div>
       {tab === "holat" && <HaydovchiHolat />}
+      {tab === "xarita" && <HaydovchiXarita />}
       {tab === "masofa" && <HaydovchiMasofa />}
       {tab === "tolovlar" && <HaydovchiTolovlar />}
     </div>
@@ -2000,6 +2003,106 @@ function HaydovchiHolat() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// Xarita plitkalari manzili. OpenStreetMap'ning ochiq serveri yengil foydalanish uchun;
+// foydalanuvchilar ko'payganda shu bitta qatorni boshqa provayder manziliga almashtiring.
+const MAP_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+function escHtml(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+function HaydovchiXarita() {
+  const mapDivRef = useRef(null);
+  const mapRef = useRef(null);
+  const markersRef = useRef({});
+  const fittedRef = useRef(false);
+  const [drivers, setDrivers] = useState([]);
+
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      const { data } = await supabase.from("drivers").select("*").order("name");
+      if (alive) setDrivers(data || []);
+    }
+    load();
+    const i = setInterval(load, 10000);
+    return () => { alive = false; clearInterval(i); };
+  }, []);
+
+  useEffect(() => {
+    const map = L.map(mapDivRef.current).setView([41.4, 64.6], 5);
+    L.tileLayer(MAP_TILE_URL, { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+    mapRef.current = map;
+    return () => { map.remove(); mapRef.current = null; markersRef.current = {}; fittedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const seen = {};
+    const bounds = [];
+
+    drivers.forEach((d) => {
+      if (!d.current_lat || !d.current_lng) return;
+      seen[d.id] = true;
+      const pos = [Number(d.current_lat), Number(d.current_lng)];
+      bounds.push(pos);
+
+      const lastPing = d.last_ping_at ? new Date(d.last_ping_at).getTime() : null;
+      const stale = lastPing !== null && Date.now() - lastPing > 10 * 60 * 1000;
+      const active = d.on_route && !stale;
+      const color = active ? "#2c7a4b" : "#8a8f9c";
+      const label = escHtml(d.name) + (d.on_route ? " \u00B7 " + Number(d.route_km || 0).toFixed(1) + " km" : "");
+      const icon = L.divIcon({
+        className: "",
+        iconSize: [0, 0],
+        iconAnchor: [8, 8],
+        html: '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap">' +
+          '<span style="width:16px;height:16px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.5);flex-shrink:0"></span>' +
+          '<span style="background:rgba(11,18,32,.88);color:#fff;font:600 12px system-ui,sans-serif;padding:2px 7px;border-radius:6px">' + label + "</span></div>",
+      });
+      const ago = lastPing !== null ? Math.max(0, Math.round((Date.now() - lastPing) / 60000)) + " daqiqa oldin" : "noma'lum";
+      const popup =
+        "<b>" + escHtml(d.name) + "</b><br/>" +
+        escHtml(d.phone || "tel yo'q") + "<br/>" +
+        (d.on_route ? "Yo'lda" : "Yo'lda emas") + " \u2022 " + Number(d.route_km || 0).toFixed(1) + " km<br/>" +
+        "Oxirgi signal: " + ago + "<br/>" +
+        '<a href="https://yandex.uz/maps/?pt=' + pos[1] + "," + pos[0] + '&z=16&l=map" target="_blank" rel="noreferrer">Yandex xaritada</a>';
+
+      const existing = markersRef.current[d.id];
+      if (existing) {
+        existing.setLatLng(pos);
+        existing.setIcon(icon);
+        existing.setPopupContent(popup);
+      } else {
+        markersRef.current[d.id] = L.marker(pos, { icon }).addTo(map).bindPopup(popup);
+      }
+    });
+
+    Object.keys(markersRef.current).forEach((id) => {
+      if (!seen[id]) { markersRef.current[id].remove(); delete markersRef.current[id]; }
+    });
+
+    if (!fittedRef.current && bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      fittedRef.current = true;
+    }
+  }, [drivers]);
+
+  const withPos = drivers.filter((d) => d.current_lat && d.current_lng);
+  const onRouteCount = withPos.filter((d) => d.on_route).length;
+
+  return (
+    <div className="mb-card" style={{ padding: 12 }}>
+      <div style={{ fontSize: 13, color: "#98A2B8", marginBottom: 10 }}>
+        Joylashuvi bor: {withPos.length} ta, yo'lda: {onRouteCount} ta. Xarita har 10 soniyada yangilanadi.
+        Yashil nuqta: yo'lda, kulrang: yo'lda emas yoki signal 10 daqiqadan beri yo'q.
+      </div>
+      <div ref={mapDivRef} style={{ height: "65vh", borderRadius: 10, overflow: "hidden" }} />
     </div>
   );
 }
