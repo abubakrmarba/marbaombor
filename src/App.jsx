@@ -3,7 +3,7 @@ import {
   Search, Plus, Trash2, Printer, LogOut, ShoppingCart,
   Users, History, X, Instagram, Send, Wallet, Check, ChevronLeft, Inbox,
   Pencil, Package, Image as ImageIcon,
-  Warehouse, ClipboardCheck, Undo2, BarChart3, ArrowRightLeft, Sparkles, Video, FileText
+  Warehouse, ClipboardCheck, Undo2, BarChart3, ArrowRightLeft, Sparkles, Video, FileText, MapPin, Truck
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import * as XLSX from "xlsx";
@@ -422,6 +422,8 @@ export default function App() {
     { key: "import", label: "1C Import", icon: Package },
     { key: "buxgalter", label: "Buxgalter", icon: FileText },
     { key: "yiguv", label: "Yig'uv", icon: ClipboardCheck },
+    { key: "polka", label: "Polka (mesta)", icon: MapPin },
+    { key: "haydovchilar", label: "Haydovchilar", icon: Truck },
   ];
   const activeMenuItem = MENU_ITEMS.find((m) => m.key === section);
 
@@ -711,6 +713,8 @@ export default function App() {
           {section === "import" && <ImportSection />}
           {section === "buxgalter" && <BuxgalterSection />}
           {section === "yiguv" && <YiguvSection />}
+          {section === "polka" && <PolkaSection sellerName={sellerName} />}
+          {section === "haydovchilar" && <HaydovchilarSection />}
         </div>
       </div>
       )}
@@ -1595,7 +1599,6 @@ function YiguvSection() {
   const [codeError, setCodeError] = useState("");
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
-  const [polkaDraft, setPolkaDraft] = useState({});
   const [savingId, setSavingId] = useState(null);
 
   async function identify() {
@@ -1627,12 +1630,10 @@ function YiguvSection() {
   }
 
   async function markPacked(order) {
-    const polka = String(polkaDraft[order.id] || "").trim();
-    if (!polka) { alert("Polka raqamini kiriting"); return; }
     setSavingId(order.id);
     const { error } = await supabase
       .from("buyurtmalar")
-      .update({ status: "yigilmoqda", packed_by: yiguvchi.name, polka: Number(polka) || polka })
+      .update({ status: "yigilmoqda", packed_by: yiguvchi.name })
       .eq("id", order.id);
     setSavingId(null);
     if (error) { alert("Xatolik: " + error.message); return; }
@@ -1676,14 +1677,487 @@ function YiguvSection() {
                   {o.buyurtma_items.map((it) => `${it.product_name} x${it.qty}`).join(", ")}
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <input className="mb-input" style={{ maxWidth: 120 }} placeholder="Polka raqami"
-                    value={polkaDraft[o.id] ?? ""} onChange={(e) => setPolkaDraft((d) => ({ ...d, [o.id]: e.target.value }))} />
                   <button className="mb-btn mb-btn-primary" disabled={savingId === o.id} onClick={() => markPacked(o)}>
                     {savingId === o.id ? "..." : "Yig'ildi"}
                   </button>
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- POLKA (Mesta - mijoz bo'yicha joy band qilish) ---------------- */
+function PolkaSection({ sellerName }) {
+  const [tab, setTab] = useState("faol");
+  const [faol, setFaol] = useState([]);
+  const [faolLoading, setFaolLoading] = useState(true);
+
+  const [custQuery, setCustQuery] = useState("");
+  const [custResults, setCustResults] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [polka, setPolka] = useState("");
+  const [yukSoni, setYukSoni] = useState("1");
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const [histRows, setHistRows] = useState([]);
+  const [histLoading, setHistLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("hammasi");
+  const [dateField, setDateField] = useState("created");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [histSearch, setHistSearch] = useState("");
+
+  async function refreshFaol() {
+    const { data } = await supabase
+      .from("mestalar")
+      .select("*")
+      .eq("status", "yuklanmagan")
+      .order("polka", { ascending: true })
+      .order("created_at", { ascending: true });
+    setFaol(data || []);
+    setFaolLoading(false);
+  }
+
+  useEffect(() => {
+    refreshFaol();
+    const interval = setInterval(refreshFaol, 20000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const q = custQuery.trim().replace(/[,()%*"]/g, "");
+    if (!q || selectedCustomer) { setCustResults([]); return; }
+    const t = setTimeout(async () => {
+      const filter = /^\d+$/.test(q) ? `id.ilike.${q}%,name.ilike.%${q}%` : `name.ilike.%${q}%`;
+      const { data } = await supabase.from("customers").select("id, name, viloyat").or(filter).limit(8);
+      setCustResults(data || []);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [custQuery, selectedCustomer]);
+
+  async function createMesta() {
+    setFormError("");
+    if (!selectedCustomer) { setFormError("Mijozni ro'yxatdan tanlang"); return; }
+    const p = parseInt(polka, 10);
+    const y = parseInt(yukSoni, 10);
+    if (!p || p < 1) { setFormError("Polka raqamini kiriting"); return; }
+    if (!y || y < 1) { setFormError("Yuk sonini kiriting"); return; }
+    setSaving(true);
+    const { error } = await supabase.from("mestalar").insert({
+      customer_id: selectedCustomer.id,
+      customer_name: selectedCustomer.name,
+      polka: p,
+      yuk_soni: y,
+      created_by: sellerName,
+    });
+    setSaving(false);
+    if (error) { setFormError("Xatolik: " + error.message); return; }
+    setSelectedCustomer(null); setCustQuery(""); setPolka(""); setYukSoni("1");
+    refreshFaol();
+  }
+
+  async function deleteMesta(m) {
+    if (!confirm(`${m.customer_name} \u2014 ${m.polka}-polka yozuvini o'chirishga ishonchingiz komilmi?`)) return;
+    const { error } = await supabase.from("mestalar").delete().eq("id", m.id);
+    if (error) { alert("Xatolik: " + error.message); return; }
+    refreshFaol();
+  }
+
+  async function loadHist() {
+    setHistLoading(true);
+    const field = dateField === "loaded" ? "loaded_at" : "created_at";
+    let q = supabase.from("mestalar").select("*").order(field, { ascending: false, nullsFirst: false }).limit(500);
+    if (statusFilter !== "hammasi") q = q.eq("status", statusFilter);
+    if (dateFrom) q = q.gte(field, new Date(dateFrom + "T00:00:00").toISOString());
+    if (dateTo) q = q.lte(field, new Date(dateTo + "T23:59:59.999").toISOString());
+    const { data } = await q;
+    setHistRows(data || []);
+    setHistLoading(false);
+  }
+
+  useEffect(() => {
+    if (tab === "tarix") loadHist();
+  }, [tab, statusFilter, dateField, dateFrom, dateTo]);
+
+  const histFiltered = useMemo(() => {
+    const q = histSearch.trim().toLowerCase();
+    if (!q) return histRows;
+    return histRows.filter((m) =>
+      (m.customer_name || "").toLowerCase().includes(q) ||
+      String(m.customer_id || "").includes(q) ||
+      String(m.polka).includes(q) ||
+      (m.loaded_by || "").toLowerCase().includes(q)
+    );
+  }, [histRows, histSearch]);
+  const histYuk = useMemo(() => histFiltered.reduce((s, m) => s + Number(m.yuk_soni || 0), 0), [histFiltered]);
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <div style={{ display: "flex", gap: 6 }}>
+        {[["faol", "Mesta belgilash"], ["tarix", "Tarix"]].map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)} className="mb-btn"
+            style={{ background: tab === k ? ORANGE : "#232C42", color: "#fff", fontSize: 13 }}>{label}</button>
+        ))}
+      </div>
+
+      {tab === "faol" && (
+        <>
+          <div className="mb-card">
+            <div style={{ fontWeight: 700, marginBottom: 12 }}>Yangi mesta</div>
+            <div style={{ position: "relative", marginBottom: 10 }}>
+              <input className="mb-input" placeholder="Mijoz ID yoki ismi" value={custQuery}
+                onChange={(e) => { setCustQuery(e.target.value); if (selectedCustomer) setSelectedCustomer(null); }} />
+              {custResults.length > 0 && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10, background: "#141B2E", border: "1px solid #2A3652", borderRadius: 8, marginTop: 4, maxHeight: 280, overflowY: "auto" }}>
+                  {custResults.map((c) => (
+                    <div key={c.id}
+                      onClick={() => { setSelectedCustomer(c); setCustQuery(c.name); setCustResults([]); }}
+                      style={{ padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid #1B2740", fontSize: 13.5 }}>
+                      <b>{c.name}</b> <span style={{ color: "#98A2B8", fontFamily: "monospace", fontSize: 12 }}>({c.id})</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {selectedCustomer && (
+              <div style={{ fontSize: 12.5, color: "#2c7a4b", marginBottom: 10 }}>Tanlandi: {selectedCustomer.name} (ID: {selectedCustomer.id})</div>
+            )}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+              <input type="number" min="1" className="mb-input" style={{ maxWidth: 140 }} placeholder="Polka raqami" value={polka} onChange={(e) => setPolka(e.target.value)} />
+              <input type="number" min="1" className="mb-input" style={{ maxWidth: 140 }} placeholder="Yuk soni" value={yukSoni} onChange={(e) => setYukSoni(e.target.value)} />
+            </div>
+            {formError && <div style={{ color: "#f0837f", fontSize: 13, marginBottom: 10 }}>{formError}</div>}
+            <button className="mb-btn mb-btn-primary" disabled={saving} onClick={createMesta}>{saving ? "..." : "Mesta belgilash"}</button>
+          </div>
+
+          <div>
+            <div style={{ fontWeight: 700, marginBottom: 10 }}>Yuklanmagan mesta'lar ({faol.length})</div>
+            {faolLoading ? (
+              <div style={{ color: "#98A2B8", textAlign: "center", padding: 24 }}>Yuklanmoqda...</div>
+            ) : faol.length === 0 ? (
+              <div className="mb-card" style={{ textAlign: "center", color: "#98A2B8", padding: 30 }}>Hozircha yuklanmagan mesta yo'q.</div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 12 }}>
+                {faol.map((m) => (
+                  <div key={m.id} className="mb-card" style={{ padding: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 10, background: ORANGE, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 18, flexShrink: 0 }}>
+                        {m.polka}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13.5 }}>{m.customer_name}</div>
+                        <div style={{ color: "#98A2B8", fontSize: 11.5, fontFamily: "monospace" }}>{m.customer_id || ""}</div>
+                      </div>
+                      <button className="mb-btn mb-btn-danger" style={{ padding: "5px 8px" }} onClick={() => deleteMesta(m)}><Trash2 size={13} /></button>
+                    </div>
+                    <div style={{ fontSize: 13 }}>{"\u{1F4E6}"} Yuk soni: <b>{m.yuk_soni}</b></div>
+                    <div style={{ fontSize: 11.5, color: "#98A2B8", marginTop: 4 }}>{m.created_by} {"\u2022"} {formatDate(m.created_at)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {tab === "tarix" && (
+        <>
+          <div className="mb-card">
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+              {[["hammasi", "Hammasi"], ["yuklanmagan", "Yuklanmagan"], ["yuklangan", "Yuklangan"]].map(([k, label]) => (
+                <button key={k} onClick={() => setStatusFilter(k)} className="mb-btn"
+                  style={{ background: statusFilter === k ? ORANGE : "#232C42", color: "#fff", fontSize: 12.5, padding: "8px 12px" }}>{label}</button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ fontSize: 12.5, color: "#98A2B8" }}>Sana bo'yicha:</span>
+              {[["created", "Belgilangan sana"], ["loaded", "Yuklangan sana"]].map(([k, label]) => (
+                <button key={k} onClick={() => setDateField(k)} className="mb-btn"
+                  style={{ background: dateField === k ? "#2C6FA6" : "#232C42", color: "#fff", fontSize: 12.5, padding: "7px 12px" }}>{label}</button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+              <input type="date" className="mb-input" style={{ maxWidth: 170 }} value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              <span style={{ color: "#98A2B8" }}>{"\u2014"}</span>
+              <input type="date" className="mb-input" style={{ maxWidth: 170 }} value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              {(dateFrom || dateTo) && (
+                <button className="mb-btn mb-btn-ghost" style={{ padding: "8px 12px", fontSize: 12.5 }} onClick={() => { setDateFrom(""); setDateTo(""); }}>Tozalash</button>
+              )}
+            </div>
+            <input className="mb-input" placeholder="Mijoz, ID, polka yoki haydovchi bo'yicha qidirish..." value={histSearch} onChange={(e) => setHistSearch(e.target.value)} />
+          </div>
+
+          <div className="mb-card">
+            <div style={{ fontWeight: 700, marginBottom: 10 }}>{histFiltered.length} ta yozuv, {histYuk} ta yuk</div>
+            {histLoading ? (
+              <div style={{ color: "#98A2B8", textAlign: "center", padding: 20 }}>Yuklanmoqda...</div>
+            ) : histFiltered.length === 0 ? (
+              <div style={{ color: "#98A2B8", textAlign: "center", padding: 20 }}>Hech narsa topilmadi.</div>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table className="mb-table">
+                  <thead><tr><th>Belgilangan</th><th>Mijoz</th><th>Polka</th><th>Yuk</th><th>Holat</th><th>Yuklagan</th></tr></thead>
+                  <tbody>
+                    {histFiltered.map((m) => (
+                      <tr key={m.id}>
+                        <td style={{ fontSize: 12 }}>{formatDate(m.created_at)}</td>
+                        <td>
+                          {m.customer_name}
+                          {m.customer_id ? <span style={{ color: "#98A2B8", fontFamily: "monospace", fontSize: 11.5 }}> ({m.customer_id})</span> : null}
+                        </td>
+                        <td style={{ fontWeight: 700 }}>{m.polka}</td>
+                        <td>{m.yuk_soni}</td>
+                        <td style={{ fontWeight: 700, fontSize: 12.5, color: m.status === "yuklangan" ? "#2c7a4b" : "#B8860B" }}>
+                          {m.status === "yuklangan" ? "Yuklangan" : "Yuklanmagan"}
+                        </td>
+                        <td style={{ fontSize: 12 }}>{m.loaded_by ? `${m.loaded_by} \u2022 ${formatDate(m.loaded_at)}` : "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- HAYDOVCHILAR (admin panel) ---------------- */
+function HaydovchilarSection() {
+  const [tab, setTab] = useState("holat");
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {[["holat", "Holat"], ["masofa", "Masofa"], ["tolovlar", "To'lovlar"]].map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)} className="mb-btn"
+            style={{ background: tab === k ? ORANGE : "#232C42", color: "#fff", fontSize: 13 }}>{label}</button>
+        ))}
+      </div>
+      {tab === "holat" && <HaydovchiHolat />}
+      {tab === "masofa" && <HaydovchiMasofa />}
+      {tab === "tolovlar" && <HaydovchiTolovlar />}
+    </div>
+  );
+}
+
+function HaydovchiHolat() {
+  const [drivers, setDrivers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    load();
+    const i = setInterval(load, 15000);
+    return () => clearInterval(i);
+  }, []);
+
+  async function load() {
+    const { data } = await supabase.from("drivers").select("*").order("name");
+    setDrivers(data || []);
+    setLoading(false);
+  }
+
+  if (loading) return <div style={{ color: "#98A2B8", textAlign: "center", padding: 24 }}>Yuklanmoqda...</div>;
+  const onRouteCount = drivers.filter((d) => d.on_route).length;
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <div style={{ fontWeight: 700 }}>Haydovchilar ({drivers.length}), yo'lda: {onRouteCount}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+        {drivers.map((d) => {
+          const mapHref = d.current_lat && d.current_lng
+            ? `https://yandex.uz/maps/?pt=${d.current_lng},${d.current_lat}&z=15&l=map`
+            : null;
+          return (
+            <div key={d.id} className="mb-card" style={{ padding: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontWeight: 700 }}>{d.name}{d.is_admin ? " (admin)" : ""}</div>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: d.on_route ? "#2c7a4b" : "#98A2B8" }}>{d.on_route ? "Yo'lda" : "Yo'lda emas"}</span>
+              </div>
+              <div style={{ fontSize: 12.5, color: "#98A2B8" }}>
+                {d.phone || "tel yo'q"}{d.hudud ? ` \u2022 ${d.hudud}${d.viloyat ? ` (${d.viloyat})` : ""}` : ""}
+              </div>
+              <div style={{ fontWeight: 700, fontSize: 13.5, margin: "8px 0" }}>Joriy masofa: {Number(d.route_km || 0).toFixed(1)} km</div>
+              {mapHref ? (
+                <a href={mapHref} target="_blank" rel="noreferrer" className="mb-btn mb-btn-ghost"
+                  style={{ display: "inline-block", textDecoration: "none", fontSize: 12.5, padding: "7px 12px" }}>Xaritada ko'rish</a>
+              ) : (
+                <div style={{ fontSize: 12, color: "#98A2B8" }}>Joylashuv hali yo'q</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function HaydovchiMasofa() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      let q = supabase.from("driver_routes").select("*").order("ended_at", { ascending: false }).limit(500);
+      if (dateFrom) q = q.gte("ended_at", new Date(dateFrom + "T00:00:00").toISOString());
+      if (dateTo) q = q.lte("ended_at", new Date(dateTo + "T23:59:59.999").toISOString());
+      const { data } = await q;
+      setRows(data || []);
+      setLoading(false);
+    })();
+  }, [dateFrom, dateTo]);
+
+  const totals = useMemo(() => {
+    const t = {};
+    rows.forEach((r) => { t[r.driver_name] = (t[r.driver_name] || 0) + Number(r.km || 0); });
+    return Object.entries(t).sort((a, b) => b[1] - a[1]);
+  }, [rows]);
+  const totalKm = totals.reduce((s, entry) => s + entry[1], 0);
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <div className="mb-card">
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <input type="date" className="mb-input" style={{ maxWidth: 170 }} value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <span style={{ color: "#98A2B8" }}>{"\u2014"}</span>
+          <input type="date" className="mb-input" style={{ maxWidth: 170 }} value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          {(dateFrom || dateTo) && (
+            <button className="mb-btn mb-btn-ghost" style={{ padding: "8px 12px", fontSize: 12.5 }} onClick={() => { setDateFrom(""); setDateTo(""); }}>Tozalash</button>
+          )}
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ color: "#98A2B8", textAlign: "center", padding: 24 }}>Yuklanmoqda...</div>
+      ) : (
+        <>
+          <div className="mb-card">
+            <div style={{ fontWeight: 700, marginBottom: 10 }}>Jami masofa: {totalKm.toFixed(1)} km</div>
+            {totals.length === 0 ? (
+              <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Ma'lumot yo'q.</div>
+            ) : (
+              <div style={{ display: "grid", gap: 8 }}>
+                {totals.map(([name, km]) => (
+                  <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, borderBottom: "1px solid #1B2740", paddingBottom: 6 }}>
+                    <span style={{ fontWeight: 600 }}>{name}</span>
+                    <span style={{ fontWeight: 700 }}>{km.toFixed(1)} km</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mb-card">
+            <div style={{ fontWeight: 700, marginBottom: 10 }}>Yo'l tarixi ({rows.length})</div>
+            {rows.length === 0 ? (
+              <div style={{ color: "#98A2B8", fontSize: 13.5 }}>Hali yo'l tarixi yo'q.</div>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table className="mb-table">
+                  <thead><tr><th>Haydovchi</th><th>Boshlangan</th><th>Tugagan</th><th>Masofa</th></tr></thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.id}>
+                        <td style={{ fontWeight: 600 }}>{r.driver_name}</td>
+                        <td style={{ fontSize: 12 }}>{r.started_at ? formatDate(r.started_at) : "-"}</td>
+                        <td style={{ fontSize: 12 }}>{r.ended_at ? formatDate(r.ended_at) : "-"}</td>
+                        <td style={{ fontWeight: 700 }}>{Number(r.km || 0).toFixed(1)} km</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function HaydovchiTolovlar() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [driverFilter, setDriverFilter] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      let q = supabase.from("payments").select("*, customers(name)").not("driver_name", "is", null).order("created_at", { ascending: false }).limit(500);
+      if (dateFrom) q = q.gte("created_at", new Date(dateFrom + "T00:00:00").toISOString());
+      if (dateTo) q = q.lte("created_at", new Date(dateTo + "T23:59:59.999").toISOString());
+      const { data } = await q;
+      setRows(data || []);
+      setLoading(false);
+    })();
+  }, [dateFrom, dateTo]);
+
+  const driverNames = useMemo(() => [...new Set(rows.map((r) => r.driver_name))].sort(), [rows]);
+  const activeDriver = driverNames.includes(driverFilter) ? driverFilter : "";
+  const filtered = useMemo(() => (activeDriver ? rows.filter((r) => r.driver_name === activeDriver) : rows), [rows, activeDriver]);
+  const total = useMemo(() => filtered.reduce((s, r) => s + Number(r.amount || 0), 0), [filtered]);
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <div className="mb-card">
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+          <button onClick={() => setDriverFilter("")} className="mb-btn"
+            style={{ background: activeDriver === "" ? ORANGE : "#232C42", color: "#fff", fontSize: 12.5, padding: "8px 12px" }}>Hammasi</button>
+          {driverNames.map((n) => (
+            <button key={n} onClick={() => setDriverFilter(n)} className="mb-btn"
+              style={{ background: activeDriver === n ? ORANGE : "#232C42", color: "#fff", fontSize: 12.5, padding: "8px 12px" }}>{n}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <input type="date" className="mb-input" style={{ maxWidth: 170 }} value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <span style={{ color: "#98A2B8" }}>{"\u2014"}</span>
+          <input type="date" className="mb-input" style={{ maxWidth: 170 }} value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          {(dateFrom || dateTo) && (
+            <button className="mb-btn mb-btn-ghost" style={{ padding: "8px 12px", fontSize: 12.5 }} onClick={() => { setDateFrom(""); setDateTo(""); }}>Tozalash</button>
+          )}
+        </div>
+      </div>
+
+      <div className="mb-card">
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>{filtered.length} ta to'lov, jami {fmt(total)}</div>
+        {loading ? (
+          <div style={{ color: "#98A2B8", textAlign: "center", padding: 20 }}>Yuklanmoqda...</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ color: "#98A2B8", textAlign: "center", padding: 20 }}>Hali haydovchi orqali to'lov qilinmagan.</div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table className="mb-table">
+              <thead><tr><th>Sana</th><th>Haydovchi</th><th>Mijoz</th><th>Summa</th></tr></thead>
+              <tbody>
+                {filtered.map((p) => (
+                  <tr key={p.id}>
+                    <td style={{ fontSize: 12 }}>{formatDate(p.created_at)}</td>
+                    <td style={{ fontWeight: 600 }}>{p.driver_name}</td>
+                    <td>
+                      {p.customers?.name || "Noma'lum mijoz"}
+                      {p.customer_id ? <span style={{ color: "#98A2B8", fontFamily: "monospace", fontSize: 11.5 }}> ({p.customer_id})</span> : null}
+                    </td>
+                    <td style={{ fontWeight: 700 }}>
+                      {fmt(p.amount)}
+                      {p.currency === "SOM" && p.original_amount ? (
+                        <div style={{ fontSize: 11.5, color: "#98A2B8", fontWeight: 400 }}>{Number(p.original_amount).toLocaleString("en-US")} so'm</div>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
