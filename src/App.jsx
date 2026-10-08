@@ -2015,18 +2015,54 @@ function escHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 }
 
+// Har bir haydovchiga alohida rang (haydovchilar ro'yxatidagi tartib bo'yicha, bir-biriga qaytarilmaydi)
+const DRIVER_COLORS = ["#E53935", "#1E88E5", "#43A047", "#FB8C00", "#8E24AA", "#00ACC1", "#D81B60", "#6D4C41", "#7CB342", "#3949AB", "#F4511E", "#00897B"];
+function driverColor(allDrivers, id) {
+  const idx = allDrivers.findIndex((d) => d.id === id);
+  return DRIVER_COLORS[(idx < 0 ? 0 : idx) % DRIVER_COLORS.length];
+}
+
 function HaydovchiXarita() {
   const mapDivRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef({});
   const fittedRef = useRef(false);
+  const linesRef = useRef({});
+  const tracksRef = useRef({});   // {driverId: {start, pts: [[lat,lng]], lastId}}
   const [drivers, setDrivers] = useState([]);
+  const [trackVer, setTrackVer] = useState(0);
+
+  // Yo'lda bo'lgan haydovchilarning yo'l izini (yangi nuqtalarni) yuklaydi
+  async function loadTracks(list) {
+    let changed = false;
+    const active = {};
+    for (const d of list) {
+      if (!d.on_route || !d.auth_user_id || !d.route_started_at) continue;
+      active[d.id] = true;
+      let t = tracksRef.current[d.id];
+      if (!t || t.start !== d.route_started_at) { t = { start: d.route_started_at, pts: [], lastId: 0 }; tracksRef.current[d.id] = t; changed = true; }
+      for (let guard = 0; guard < 10; guard++) {
+        const { data } = await supabase.from("route_points").select("id, lat, lng")
+          .eq("driver_auth_uid", d.auth_user_id).gte("started_at", d.route_started_at)
+          .gt("id", t.lastId).order("id").limit(1000);
+        if (!data || data.length === 0) break;
+        data.forEach((r) => t.pts.push([r.lat, r.lng]));
+        t.lastId = data[data.length - 1].id;
+        changed = true;
+        if (data.length < 1000) break;
+      }
+    }
+    Object.keys(tracksRef.current).forEach((id) => { if (!active[id]) { delete tracksRef.current[id]; changed = true; } });
+    if (changed) setTrackVer((v) => v + 1);
+  }
 
   useEffect(() => {
     let alive = true;
     async function load() {
       const { data } = await supabase.from("drivers").select("*").order("name");
-      if (alive) setDrivers(data || []);
+      if (!alive) return;
+      setDrivers(data || []);
+      loadTracks(data || []);
     }
     load();
     const i = setInterval(load, 10000);
@@ -2037,7 +2073,7 @@ function HaydovchiXarita() {
     const map = L.map(mapDivRef.current).setView([41.4, 64.6], 5);
     L.tileLayer(MAP_TILE_URL, { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
     mapRef.current = map;
-    return () => { map.remove(); mapRef.current = null; markersRef.current = {}; fittedRef.current = false; };
+    return () => { map.remove(); mapRef.current = null; markersRef.current = {}; linesRef.current = {}; fittedRef.current = false; };
   }, []);
 
   useEffect(() => {
@@ -2055,15 +2091,16 @@ function HaydovchiXarita() {
       const lastPing = d.last_ping_at ? new Date(d.last_ping_at).getTime() : null;
       const stale = lastPing !== null && Date.now() - lastPing > 10 * 60 * 1000;
       const active = d.on_route && !stale;
-      const color = active ? "#2c7a4b" : "#8a8f9c";
+      const color = driverColor(drivers, d.id);
+      const dim = active ? "1" : "0.55";
       const label = escHtml(d.name) + (d.on_route ? " \u00B7 " + Number(d.route_km || 0).toFixed(1) + " km" : "");
       const icon = L.divIcon({
         className: "",
         iconSize: [0, 0],
         iconAnchor: [8, 8],
         html: '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap">' +
-          '<span style="width:16px;height:16px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.5);flex-shrink:0"></span>' +
-          '<span style="background:rgba(11,18,32,.88);color:#fff;font:600 12px system-ui,sans-serif;padding:2px 7px;border-radius:6px">' + label + "</span></div>",
+          '<span style="width:16px;height:16px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.5);flex-shrink:0;opacity:' + dim + '"></span>' +
+          '<span style="background:' + color + ';opacity:' + dim + ';color:#fff;font:600 12px system-ui,sans-serif;padding:2px 7px;border-radius:6px">' + label + "</span></div>",
       });
       const ago = lastPing !== null ? Math.max(0, Math.round((Date.now() - lastPing) / 60000)) + " daqiqa oldin" : "noma'lum";
       const popup =
@@ -2093,6 +2130,30 @@ function HaydovchiXarita() {
     }
   }, [drivers]);
 
+  // Yo'l izi chiziqlari: har bir haydovchi o'z rangida, yo'l tugagach o'chadi
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const seen = {};
+    Object.keys(tracksRef.current).forEach((id) => {
+      const t = tracksRef.current[id];
+      if (!t || t.pts.length < 2) return;
+      seen[id] = true;
+      const color = driverColor(drivers, id);
+      let line = linesRef.current[id];
+      if (!line) {
+        line = L.polyline(t.pts, { color, weight: 5, opacity: 0.9, lineCap: "round", lineJoin: "round" }).addTo(map);
+        linesRef.current[id] = line;
+      } else {
+        line.setLatLngs(t.pts);
+        line.setStyle({ color });
+      }
+    });
+    Object.keys(linesRef.current).forEach((id) => {
+      if (!seen[id]) { linesRef.current[id].remove(); delete linesRef.current[id]; }
+    });
+  }, [trackVer, drivers]);
+
   const withPos = drivers.filter((d) => d.current_lat && d.current_lng);
   const onRouteCount = withPos.filter((d) => d.on_route).length;
 
@@ -2100,9 +2161,17 @@ function HaydovchiXarita() {
     <div className="mb-card" style={{ padding: 12 }}>
       <div style={{ fontSize: 13, color: "#98A2B8", marginBottom: 10 }}>
         Joylashuvi bor: {withPos.length} ta, yo'lda: {onRouteCount} ta. Xarita har 10 soniyada yangilanadi.
-        Yashil nuqta: yo'lda, kulrang: yo'lda emas yoki signal 10 daqiqadan beri yo'q.
+        Har bir haydovchi o'z rangida; yo'lda bo'lganlarning bosib o'tgan yo'li chiziq bo'lib ko'rinadi. Xira belgi: yo'lda emas yoki signal 10 daqiqadan beri yo'q.
       </div>
       <div ref={mapDivRef} style={{ height: "65vh", borderRadius: 10, overflow: "hidden" }} />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+        {drivers.map((d) => (
+          <span key={d.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, background: "#232C42", borderRadius: 8, padding: "4px 10px", opacity: d.on_route ? 1 : 0.55 }}>
+            <span style={{ width: 22, height: 5, borderRadius: 3, background: driverColor(drivers, d.id) }} />
+            {d.name}{d.on_route ? ` \u00B7 ${Number(d.route_km || 0).toFixed(1)} km` : ""}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
