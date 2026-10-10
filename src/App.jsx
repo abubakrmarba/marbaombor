@@ -3019,7 +3019,7 @@ function FeaturedProductsSection() {
                 onClick={() => toggleBanner(p)}
                 disabled={savingId === p.id}
                 className="ob-btn"
-                style={{ background: p.banner ? "#2F8CFF" : "#232C42", color: "#fff", fontSize: 12.5, padding: "8px 14px" }}
+                style={{ background: p.banner ? ORANGE : "#232C42", color: "#fff", fontSize: 12.5, padding: "8px 14px" }}
               >
                 {p.banner ? "Bannerda \u2713" : "Bannerga qo'yish"}
               </button>
