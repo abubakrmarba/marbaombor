@@ -141,6 +141,7 @@ export default function App() {
   const [newCustomerForm, setNewCustomerForm] = useState(null);
   const [cart, setCart] = useState([]);
   const [saleSearch, setSaleSearch] = useState("");
+  const [saleBolim, setSaleBolim] = useState("hammasi");
   const [qtyDraft, setQtyDraft] = useState({});
   const [paymentInput, setPaymentInput] = useState("");
 
@@ -280,13 +281,15 @@ export default function App() {
 
   const saleSearchResults = useMemo(() => {
     const q = saleSearch.trim().toLowerCase();
-    if (!q) return [];
+    const byBolim = saleBolim !== "hammasi";
+    if (!q && !byBolim) return [];
     const terms = q.split(/\s+/).filter(Boolean);
-    return products.filter((p) => {
+    const base = byBolim ? products.filter((p) => p.bolim === saleBolim) : products;
+    return base.filter((p) => {
       const nameLower = p.name.toLowerCase();
       return terms.every((term) => nameLower.includes(term));
-    }).slice(0, 8);
-  }, [saleSearch, products]);
+    }).slice(0, byBolim && !q ? 30 : 8);
+  }, [saleSearch, saleBolim, products]);
 
   function addToCart(product) {
     const qty = Math.max(1, Math.min(Number(qtyDraft[product.id]) || 1, product.qty));
@@ -594,6 +597,9 @@ export default function App() {
 
                   <div className="mb-card">
                     <div style={{ fontWeight: 700, marginBottom: 12 }}>2. Ehtiyot qismlar qo'shish</div>
+                    <div style={{ marginBottom: 10 }}>
+                      <BolimChips value={saleBolim} onChange={setSaleBolim} products={products} />
+                    </div>
                     <input className="mb-input" placeholder="Qism nomini qidirish..." value={saleSearch} onChange={(e) => setSaleSearch(e.target.value)} />
                     {saleSearchResults.length > 0 && (
                       <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
@@ -829,11 +835,35 @@ function ReceiptContent({ data }) {
 }
 
 /* ---------------- OMBOR (asosiy) ---------------- */
+const BOLIMLAR = [
+  { key: "motor", label: "Motor" },
+  { key: "xodovoy", label: "Xodovoy" },
+  { key: "elektr", label: "Elektr" },
+  { key: "kuzov", label: "Kuzov" },
+];
+
+function BolimChips({ value, onChange, products, showNone }) {
+  const count = (k) => products.filter((p) => (k === "yoq" ? !p.bolim : p.bolim === k)).length;
+  const items = [{ key: "hammasi", label: "Hammasi", n: products.length }, ...BOLIMLAR.map((b) => ({ ...b, n: count(b.key) }))];
+  if (showNone) items.push({ key: "yoq", label: "Belgilanmagan", n: count("yoq") });
+  return (
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+      {items.map((it) => (
+        <button key={it.key} type="button" onClick={() => onChange(it.key)} className="ob-btn"
+          style={{ background: value === it.key ? ORANGE : "#1B2740", color: "#fff", fontSize: 12.5, padding: "7px 12px" }}>
+          {it.label} ({it.n})
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function OmborSection() {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [bolimFilter, setBolimFilter] = useState("hammasi");
   const fileInputRef = useRef(null);
 
   useEffect(() => { refresh(); }, []);
@@ -842,15 +872,25 @@ function OmborSection() {
     setProducts(data || []);
   }
 
+  async function assignBolim(p, value) {
+    const v = value || null;
+    const { error } = await supabase.from("products").update({ bolim: v }).eq("id", p.id);
+    if (error) { alert("Bo'lim saqlanmadi: " + error.message); return; }
+    setProducts((list) => list.map((x) => (x.id === p.id ? { ...x, bolim: v } : x)));
+  }
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return products;
+    let list = products;
+    if (bolimFilter === "yoq") list = list.filter((p) => !p.bolim);
+    else if (bolimFilter !== "hammasi") list = list.filter((p) => p.bolim === bolimFilter);
+    if (!q) return list;
     const terms = q.split(/\s+/).filter(Boolean);
-    return products.filter((p) => {
+    return list.filter((p) => {
       const nameLower = p.name.toLowerCase();
       return terms.every((term) => nameLower.includes(term));
     });
-  }, [products, search]);
+  }, [products, search, bolimFilter]);
 
   async function uploadImage(file) {
     let uploadFile = file;
@@ -876,7 +916,7 @@ function OmborSection() {
     let imageUrl = form.image_url || null;
     try { if (form.imageFile) imageUrl = await uploadImage(form.imageFile); }
     catch (e) { alert("Rasm yuklashda xatolik: " + e.message); setUploading(false); return; }
-    const payload = { name: form.name.trim(), price: Number(form.price) || 0, cost_price: Number(form.cost_price) || 0, qty: Number(form.qty) || 0, image_url: imageUrl, birlik: form.birlik || "dona" };
+    const payload = { name: form.name.trim(), price: Number(form.price) || 0, cost_price: Number(form.cost_price) || 0, qty: Number(form.qty) || 0, image_url: imageUrl, birlik: form.birlik || "dona", bolim: form.bolim || null };
     if (form.id) await supabase.from("products").update(payload).eq("id", form.id);
     else await supabase.from("products").insert(payload);
     setUploading(false); setForm(null); refresh();
@@ -894,7 +934,7 @@ function OmborSection() {
           <Search size={16} style={{ position: "absolute", left: 12, top: 12, color: "#98A2B8" }} />
           <input className="ob-input" style={{ paddingLeft: 36 }} placeholder="Nomini yozing..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <button className="ob-btn ob-btn-primary" onClick={() => setForm({ name: "", price: "", cost_price: "", qty: "", image_url: null, imageFile: null, birlik: "dona" })}>
+        <button className="ob-btn ob-btn-primary" onClick={() => setForm({ name: "", price: "", cost_price: "", qty: "", image_url: null, imageFile: null, birlik: "dona", bolim: bolimFilter !== "hammasi" && bolimFilter !== "yoq" ? bolimFilter : "" })}>
           <Plus size={14} style={{ verticalAlign: -2 }} /> Yangi tovar
         </button>
       </div>
@@ -903,12 +943,22 @@ function OmborSection() {
         <ProductForm form={form} setForm={setForm} uploading={uploading} onSave={saveForm} onCancel={() => setForm(null)} fileInputRef={fileInputRef} />
       )}
 
+      <div style={{ marginBottom: 14 }}>
+        <BolimChips value={bolimFilter} onChange={setBolimFilter} products={products} showNone />
+      </div>
+
       <div style={{ display: "grid", gap: 10 }}>
         {filtered.length === 0 ? (
           <EmptyState text="Hech narsa topilmadi." />
         ) : filtered.map((p) => (
           <ProductRow key={p.id} p={p}
-            onEdit={() => setForm({ id: p.id, name: p.name, price: p.price, cost_price: p.cost_price, qty: p.qty, image_url: p.image_url, imageFile: null, birlik: p.birlik || "dona" })}
+            extra={
+              <select className="ob-input" style={{ width: 120, padding: "6px 8px", fontSize: 12.5, flexShrink: 0 }} value={p.bolim || ""} onChange={(e) => assignBolim(p, e.target.value)}>
+                <option value="">Bo'limsiz</option>
+                {BOLIMLAR.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
+              </select>
+            }
+            onEdit={() => setForm({ id: p.id, name: p.name, price: p.price, cost_price: p.cost_price, qty: p.qty, image_url: p.image_url, imageFile: null, birlik: p.birlik || "dona", bolim: p.bolim || "" })}
             onDelete={() => deleteItem(p.id)} />
         ))}
       </div>
@@ -933,6 +983,10 @@ function ProductForm({ form, setForm, uploading, onSave, onCancel, fileInputRef 
         </div>
         <div style={{ flex: 1, minWidth: 220, display: "grid", gap: 10 }}>
           <input className="ob-input" placeholder="Nomi" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <select className="ob-input" value={form.bolim || ""} onChange={(e) => setForm({ ...form, bolim: e.target.value })}>
+            <option value="">Bo'lim: tanlanmagan</option>
+            {BOLIMLAR.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
+          </select>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <input type="number" className="ob-input" placeholder="Kirim narxi ($)" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} />
             <input type="number" className="ob-input" placeholder="Sotuv narxi ($)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
@@ -1877,7 +1931,7 @@ function PolkaSection({ sellerName }) {
         <>
           <div className="mb-card">
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-              {[["hammasi", "Hammasi"], ["yuklanmagan", "Yuklanmagan"], ["yuklangan", "Yuklangan"]].map(([k, label]) => (
+              {[["hammasi", "Hammasi"], ["yuklanmagan", "Yuklanmagan"], ["yuklangan", "Yuklangan"], ["yetkazilgan", "Yetkazilgan"]].map(([k, label]) => (
                 <button key={k} onClick={() => setStatusFilter(k)} className="mb-btn"
                   style={{ background: statusFilter === k ? ORANGE : "#232C42", color: "#fff", fontSize: 12.5, padding: "8px 12px" }}>{label}</button>
               ))}
@@ -1909,7 +1963,7 @@ function PolkaSection({ sellerName }) {
             ) : (
               <div style={{ overflowX: "auto" }}>
                 <table className="mb-table">
-                  <thead><tr><th>Belgilangan</th><th>Mijoz</th><th>Polka</th><th>Yuk</th><th>Holat</th><th>Yuklagan</th></tr></thead>
+                  <thead><tr><th>Belgilangan</th><th>Mijoz</th><th>Polka</th><th>Yuk</th><th>Holat</th><th>Yuklagan</th><th>Yetkazgan</th></tr></thead>
                   <tbody>
                     {histFiltered.map((m) => (
                       <tr key={m.id}>
@@ -1920,10 +1974,11 @@ function PolkaSection({ sellerName }) {
                         </td>
                         <td style={{ fontWeight: 700 }}>{m.polka}</td>
                         <td>{m.yuk_soni}</td>
-                        <td style={{ fontWeight: 700, fontSize: 12.5, color: m.status === "yuklangan" ? "#2c7a4b" : "#B8860B" }}>
-                          {m.status === "yuklangan" ? "Yuklangan" : "Yuklanmagan"}
+                        <td style={{ fontWeight: 700, fontSize: 12.5, color: m.status === "yetkazilgan" ? "#1E88E5" : m.status === "yuklangan" ? "#2c7a4b" : "#B8860B" }}>
+                          {m.status === "yetkazilgan" ? "Yetkazilgan" : m.status === "yuklangan" ? "Yuklangan" : "Yuklanmagan"}
                         </td>
                         <td style={{ fontSize: 12 }}>{m.loaded_by ? `${m.loaded_by} \u2022 ${formatDate(m.loaded_at)}` : "-"}</td>
+                        <td style={{ fontSize: 12 }}>{m.delivered_by ? `${m.delivered_by} \u2022 ${formatDate(m.delivered_at)}` : "-"}</td>
                       </tr>
                     ))}
                   </tbody>
