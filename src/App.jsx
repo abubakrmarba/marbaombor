@@ -2868,6 +2868,36 @@ function FeaturedProductsSection() {
     return map;
   }, [featuredList]);
 
+  const bannerList = useMemo(
+    () => products.filter((p) => p.banner).sort((a, b) => (a.banner_order ?? 999) - (b.banner_order ?? 999)),
+    [products]
+  );
+
+  async function toggleBanner(p) {
+    if (!p.banner && bannerList.length >= 8) { alert("Bannerda ko'pi bilan 8 ta tovar bo'ladi. Avval bittasini olib tashlang."); return; }
+    setSavingId(p.id);
+    const payload = p.banner
+      ? { banner: false, banner_order: null }
+      : { banner: true, banner_order: bannerList.length > 0 ? Math.max(...bannerList.map((x) => x.banner_order ?? 0)) + 1 : 1 };
+    const { error } = await supabase.from("products").update(payload).eq("id", p.id);
+    if (error) { alert("Xatolik: " + error.message); setSavingId(null); return; }
+    await refresh();
+    setSavingId(null);
+  }
+
+  async function moveBanner(index, direction) {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= bannerList.length) return;
+    const a = bannerList[index], b = bannerList[targetIndex];
+    setSavingId(a.id);
+    await Promise.all([
+      supabase.from("products").update({ banner_order: targetIndex + 1 }).eq("id", a.id),
+      supabase.from("products").update({ banner_order: index + 1 }).eq("id", b.id),
+    ]);
+    await refresh();
+    setSavingId(null);
+  }
+
   async function toggleFeatured(p) {
     setSavingId(p.id);
     const newFeatured = !p.featured;
@@ -2920,6 +2950,34 @@ function FeaturedProductsSection() {
         <input className="ob-input" placeholder="Mahsulot qidirish..." value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
+      <div className="ob-card">
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>Katta banner ({bannerList.length}/8)</div>
+        <div style={{ fontSize: 13, color: "#98A2B8", marginBottom: 12 }}>
+          Mijoz ilovasi ochilganda tepada aylanib turadigan katta rasmli tovarlar. Faqat shu yerda belgilanganlar chiqadi. Rasmi bor tovar tanlang (toza, fonsiz rasm yaxshi ko'rinadi).
+        </div>
+        {bannerList.length === 0 ? (
+          <div style={{ fontSize: 13, color: "#98A2B8" }}>Hali banner tovari yo'q. Pastdagi ro'yxatdan "Bannerga qo'yish" ni bosing.</div>
+        ) : (
+          <div style={{ display: "grid", gap: 6 }}>
+            {bannerList.map((p, i) => (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "#1B2740", borderRadius: 8 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 13, background: ORANGE, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
+                <div style={{ width: 36, height: 36, borderRadius: 6, background: "#232C42", overflow: "hidden", flexShrink: 0 }}>
+                  {p.image_url ? <img src={p.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : null}
+                </div>
+                <div style={{ flex: 1, fontSize: 13.5, fontWeight: 600 }}>
+                  {p.name}
+                  {!p.image_url ? <span style={{ color: "#f0837f", fontSize: 11.5, fontWeight: 700 }}> {"\u2014"} rasmi yo'q, banner'da chiqmaydi</span> : null}
+                </div>
+                <button disabled={i === 0 || savingId === p.id} onClick={() => moveBanner(i, -1)} className="ob-btn ob-btn-ghost" style={{ padding: "4px 10px", fontSize: 14 }}>{"\u2191"}</button>
+                <button disabled={i === bannerList.length - 1 || savingId === p.id} onClick={() => moveBanner(i, 1)} className="ob-btn ob-btn-ghost" style={{ padding: "4px 10px", fontSize: 14 }}>{"\u2193"}</button>
+                <button disabled={savingId === p.id} onClick={() => toggleBanner(p)} className="ob-btn ob-btn-danger" style={{ padding: "4px 10px", fontSize: 13 }}>{"\u2715"}</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {featuredList.length > 0 && FEATURED_GROUPS.map((g) => {
         const list = featuredByGroup[g.key] || [];
         if (list.length === 0) return null;
@@ -2957,6 +3015,14 @@ function FeaturedProductsSection() {
                 <div style={{ fontWeight: 700, fontSize: 14 }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: "#98A2B8" }}>{fmt(p.price)}</div>
               </div>
+              <button
+                onClick={() => toggleBanner(p)}
+                disabled={savingId === p.id}
+                className="ob-btn"
+                style={{ background: p.banner ? "#2F8CFF" : "#232C42", color: "#fff", fontSize: 12.5, padding: "8px 14px" }}
+              >
+                {p.banner ? "Bannerda \u2713" : "Bannerga qo'yish"}
+              </button>
               <button
                 onClick={() => toggleFeatured(p)}
                 disabled={savingId === p.id}
